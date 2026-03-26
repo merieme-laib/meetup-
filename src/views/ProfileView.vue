@@ -232,7 +232,17 @@ import { useAuthStore } from '@/stores/auth.store'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const activeTab = ref<'overview' | 'registrations' | 'liked' | 'created' | 'settings'>('overview')
+const tabs = [
+  { id: 'overview',      label: "Vue d'ensemble",  icon: UserIcon },
+  { id: 'registrations', label: 'Inscriptions',    icon: CheckCircle },
+  { id: 'liked',         label: 'Likes',           icon: Heart },
+  { id: 'created',       label: 'Mes évènements',  icon: CalendarDays },
+  { id: 'settings',      label: 'Paramètres',      icon: Settings },
+] as const
+
+type TabId = (typeof tabs)[number]['id']
+
+const activeTab = ref<TabId>('overview')
 const editMode = ref(false)
 const saveSuccess = ref(false)
 const avatarPreview = ref<string | null>(null)
@@ -249,14 +259,6 @@ const editFields = [
   { key: 'firstName' as const, label: 'Prénom',  type: 'text',  placeholder: 'Jean' },
   { key: 'lastName'  as const, label: 'Nom',     type: 'text',  placeholder: 'Dupont' },
   { key: 'email'     as const, label: 'E-mail',  type: 'email', placeholder: 'vous@email.com' },
-]
-
-const tabs = [
-  { id: 'overview',      label: "Vue d'ensemble",  icon: UserIcon },
-  { id: 'registrations', label: 'Inscriptions',    icon: CheckCircle },
-  { id: 'liked',         label: 'Likes',           icon: Heart },
-  { id: 'created',       label: 'Mes évènements',  icon: CalendarDays },
-  { id: 'settings',      label: 'Paramètres',      icon: Settings },
 ]
 
 const notifPrefs = [

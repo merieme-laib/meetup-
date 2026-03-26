@@ -29,8 +29,8 @@
               type="submit"
               class="px-4 text-sm text-white shrink-0 transition-colors"
               style="background-color: #7A9E6E; font-weight: 600"
-              @mouseenter="e => e.currentTarget.style.backgroundColor = '#5E7D58'"
-              @mouseleave="e => e.currentTarget.style.backgroundColor = '#7A9E6E'"
+              @mouseenter="setTargetBackground($event, '#5E7D58')"
+              @mouseleave="setTargetBackground($event, '#7A9E6E')"
             >
               Chercher
             </button>
@@ -64,8 +64,8 @@
               to="/evenements/creer"
               class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-white transition-colors"
               style="background-color: #7A9E6E; font-weight: 600"
-              @mouseenter="e => e.currentTarget.style.backgroundColor = '#5E7D58'"
-              @mouseleave="e => e.currentTarget.style.backgroundColor = '#7A9E6E'"
+              @mouseenter="setTargetBackground($event, '#5E7D58')"
+              @mouseleave="setTargetBackground($event, '#7A9E6E')"
             >
               <Plus :size="15" />
               Créer
@@ -119,8 +119,8 @@
               to="/inscription"
               class="px-4 py-2 rounded-lg text-sm text-white transition-colors"
               style="background-color: #7A9E6E; font-weight: 600"
-              @mouseenter="e => e.currentTarget.style.backgroundColor = '#5E7D58'"
-              @mouseleave="e => e.currentTarget.style.backgroundColor = '#7A9E6E'"
+              @mouseenter="setTargetBackground($event, '#5E7D58')"
+              @mouseleave="setTargetBackground($event, '#7A9E6E')"
             >
               S'inscrire
             </RouterLink>
@@ -245,6 +245,12 @@ function handleClickOutside(e: MouseEvent) {
   if (dropdownRef.value && !dropdownRef.value.contains(e.target as Node)) {
     dropdownOpen.value = false
   }
+}
+
+function setTargetBackground(event: MouseEvent, color: string) {
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) return
+  target.style.backgroundColor = color
 }
 
 onMounted(() => document.addEventListener('mousedown', handleClickOutside))

@@ -152,8 +152,8 @@
             <button type="submit" :disabled="loading"
               class="w-full py-3 rounded-lg text-white text-sm flex items-center justify-center gap-2 font-bold transition-colors mt-2"
               :style="{ backgroundColor: loading ? '#A8D47A' : '#7A9E6E' }"
-              @mouseenter="e => { if (!loading) e.currentTarget.style.backgroundColor = '#5E7D58' }"
-              @mouseleave="e => { if (!loading) e.currentTarget.style.backgroundColor = loading ? '#A8D47A' : '#7A9E6E' }"
+              @mouseenter="handleSubmitHover($event)"
+              @mouseleave="handleSubmitLeave($event)"
             >
               <span v-if="loading" class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span v-else>{{ isRegister ? 'Créer mon compte' : 'Se connecter' }}</span>
@@ -248,5 +248,19 @@ async function handleSubmit() {
   } finally {
     loading.value = false
   }
+}
+
+function handleSubmitHover(event: MouseEvent) {
+  if (loading.value) return
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) return
+  target.style.backgroundColor = '#5E7D58'
+}
+
+function handleSubmitLeave(event: MouseEvent) {
+  if (loading.value) return
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) return
+  target.style.backgroundColor = loading.value ? '#A8D47A' : '#7A9E6E'
 }
 </script>

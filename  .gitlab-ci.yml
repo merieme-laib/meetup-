@@ -1,0 +1,21 @@
+image: node:22-alpine
+
+stages:
+  - deploy
+
+variables:
+  VM_IP: "192.168.75.120"
+  REMOTE_PATH: "/var/www/ellevent"
+
+deploy:
+  stage: deploy
+  only:
+    - main
+  before_script:
+    - apk add --no-cache openssh-client
+    - chmod 400 "$CI_SSH_KEY"
+  script:
+    - npm ci
+    - npm run build
+    - ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" "gitlabci@${VM_IP}" "sudo mkdir -p ${REMOTE_PATH} && sudo chown -R gitlabci:gitlabci ${REMOTE_PATH}"
+    - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" -r dist/* "gitlabci@${VM_IP}:${REMOTE_PATH}/"

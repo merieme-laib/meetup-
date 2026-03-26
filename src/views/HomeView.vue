@@ -41,8 +41,8 @@
               type="submit"
               class="px-6 text-white shrink-0 font-bold text-sm transition-colors"
               style="background-color: #7A9E6E"
-              @mouseenter="e => e.currentTarget.style.backgroundColor = '#5E7D58'"
-              @mouseleave="e => e.currentTarget.style.backgroundColor = '#7A9E6E'"
+              @mouseenter="setTargetBackground($event, '#5E7D58')"
+              @mouseleave="setTargetBackground($event, '#7A9E6E')"
             >
               Rechercher
             </button>
@@ -174,8 +174,8 @@
             to="/evenements"
             class="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-sm font-bold transition-colors"
             style="background-color: #7A9E6E"
-            @mouseenter="e => e.currentTarget.style.backgroundColor = '#5E7D58'"
-            @mouseleave="e => e.currentTarget.style.backgroundColor = '#7A9E6E'"
+            @mouseenter="setTargetBackground($event, '#5E7D58')"
+            @mouseleave="setTargetBackground($event, '#7A9E6E')"
           >
             Voir tous les évènements
             <ArrowRight :size="15" />
@@ -201,8 +201,8 @@
             to="/evenements/creer"
             class="flex items-center gap-2 px-7 py-3.5 rounded-lg text-white text-sm font-bold transition-colors"
             style="background-color: #7A9E6E"
-            @mouseenter="e => e.currentTarget.style.backgroundColor = '#5E7D58'"
-            @mouseleave="e => e.currentTarget.style.backgroundColor = '#7A9E6E'"
+            @mouseenter="setTargetBackground($event, '#5E7D58')"
+            @mouseleave="setTargetBackground($event, '#7A9E6E')"
           >
             <Plus :size="16" />
             Créer un évènement
@@ -225,7 +225,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Search, ArrowRight, MapPin, Users, CalendarDays,
-  TrendingUp, Plus, ChevronRight, Wifi
+  TrendingUp, Plus, ChevronRight
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -304,5 +304,11 @@ function formatDate(dateStr: string): string {
     month: 'short',
     year: 'numeric',
   })
+}
+
+function setTargetBackground(event: MouseEvent, color: string) {
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) return
+  target.style.backgroundColor = color
 }
 </script>
