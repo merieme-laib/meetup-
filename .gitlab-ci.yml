@@ -11,11 +11,13 @@ deploy:
   stage: deploy
   only:
     - main
+
   before_script:
     - apk add --no-cache openssh-client
     - chmod 400 "$CI_SSH_KEY"
+
   script:
     - npm ci
     - npm run build
-    - ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" "gitlabci@${VM_IP}" "if sudo -n true 2>/dev/null; then sudo mkdir -p ${REMOTE_PATH} && sudo chown -R gitlabci:gitlabci ${REMOTE_PATH}; elif [ -n '${VM_SUDO_PASSWORD}' ]; then printf '%s\\n' '${VM_SUDO_PASSWORD}' | sudo -S -p '' mkdir -p ${REMOTE_PATH} && printf '%s\\n' '${VM_SUDO_PASSWORD}' | sudo -S -p '' chown -R gitlabci:gitlabci ${REMOTE_PATH}; else echo 'ERROR: sudo requires a password. Configure NOPASSWD for gitlabci or add masked CI variable VM_SUDO_PASSWORD.' >&2; exit 1; fi"
-    - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" -r dist/* "gitlabci@${VM_IP}:${REMOTE_PATH}/"
+    - 'ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" "gitlabci@${VM_IP}" "if sudo -n true 2>/dev/null; then sudo mkdir -p ${REMOTE_PATH} && sudo chown -R gitlabci:gitlabci ${REMOTE_PATH}; elif [ -n \"${VM_SUDO_PASSWORD}\" ]; then printf \"%s\n\" \"${VM_SUDO_PASSWORD}\" | sudo -S -p \"\" mkdir -p ${REMOTE_PATH} && printf \"%s\n\" \"${VM_SUDO_PASSWORD}\" | sudo -S -p \"\" chown -R gitlabci:gitlabci ${REMOTE_PATH}; else echo \"ERROR sudo requires a password. Configure NOPASSWD for gitlabci or add masked CI variable VM_SUDO_PASSWORD.\" >&2; exit 1; fi"'
+    - 'scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" -r dist/* "gitlabci@${VM_IP}:${REMOTE_PATH}/"'
