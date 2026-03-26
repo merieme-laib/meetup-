@@ -1,8 +1,6 @@
-image: node:22-alpine
-
 stages:
   - build
-  - quality
+  - sonarqube-check
   - deploy
 
 variables:
@@ -11,14 +9,18 @@ variables:
   REMOTE_BACK_PATH: "/home/gitlabci/backend.jar"
   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
   GIT_DEPTH: "0"
+  MAVEN_OPTS: "-Dmaven.repo.local=${CI_PROJECT_DIR}/.m2/repository"
 
 cache:
   paths:
-    - node_modules/
     - .sonar/cache
+    - .m2/repository
+    - node_modules/
 
+# 🔹 BUILD FRONT
 build_front:
   stage: build
+  image: node:22-alpine
   script:
     - npm ci
     - npm run build
@@ -28,30 +30,41 @@ build_front:
   only:
     - main
 
-build_backend:
-  stage: build
+# 🔹 BUILD BACK + SONAR
+sonarqube-check:
+  stage: sonarqube-check
   image: maven:3-eclipse-temurin-21
+  before_script:
+    - mkdir -p ~/.m2
+    - |
+      cat > ~/.m2/settings.xml << 'EOF'
+      <settings>
+        <proxies>
+          <proxy>
+            <id>lyon1-proxy</id>
+            <active>true</active>
+            <protocol>http</protocol>
+            <host>proxy.univ-lyon1.fr</host>
+            <port>3128</port>
+          </proxy>
+        </proxies>
+      </settings>
+      EOF
   script:
     - cd backend
+    - mvn dependency:go-offline
     - mvn clean package -DskipTests
+    - mvn sonar:sonar
   artifacts:
     paths:
       - backend/target/*.jar
   only:
     - main
 
-sonarqube:
-  stage: quality
-  image: sonarsource/sonar-scanner-cli:latest
-  dependencies:
-    - build_backend
-  script:
-    - sonar-scanner -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
-  only:
-    - main
-
+# 🔹 DEPLOY FRONT
 deploy_front:
   stage: deploy
+  image: node:22-alpine
   before_script:
     - apk add --no-cache openssh-client
     - chmod 400 "$CI_SSH_KEY"
@@ -62,6 +75,7 @@ deploy_front:
   only:
     - main
 
+# 🔹 DEPLOY BACKEND
 deploy_backend:
   stage: deploy
   image: maven:3-eclipse-temurin-21
@@ -72,10 +86,10 @@ deploy_backend:
     - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" backend/target/*.jar "gitlabci@${VM_IP}:${REMOTE_BACK_PATH}"
     - |
       ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" gitlabci@${VM_IP} '
-        pkill -f backend.jar || true
+        pkill -f backend.jar || true &&
         nohup java -jar /home/gitlabci/backend.jar > /home/gitlabci/backend.log 2>&1 &
       '
   dependencies:
-    - build_backend
+    - sonarqube-check
   only:
     - main
