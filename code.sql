@@ -67,11 +67,10 @@ ALTER TABLE "notifications" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id"
 
 -- JEU DE DONNÉES DE TEST CONFORME
 INSERT INTO users (first_name, last_name, email, password, bio) VALUES 
-('Jean', 'Dupont', 'jean@email.com', 'bcrypt_hash_123', 'Passionné de tech'), [cite: 27]
+('Jean', 'Dupont', 'jean@email.com', 'bcrypt_hash_123', 'Passionné de tech'),
 ('Alice', 'Etu', 'alice@etu.fr', 'bcrypt_hash_456', 'Étudiante en M1');
 
 INSERT INTO events (title, description, date, location, city, is_online, price, category, creator_id) VALUES 
-('Atelier Vue.js', 'Apprendre les bases du front', '2025-04-15 19:00:00', 'Nautibus', 'Lyon', false, 0.0, 'Développement', 1), [cite: 39, 41]
-('Webinaire Cloud', 'Le futur du SaaS', '2025-05-10 10:00:00', 'Zoom', 'En ligne', true, 15.0, 'Cloud', 1); [cite: 39]
-
+('Atelier Vue.js', 'Apprendre les bases du front', '2025-04-15 19:00:00', 'Nautibus', 'Lyon', false, 0.0, 'Développement', 1),
+('Webinaire Cloud', 'Le futur du SaaS', '2025-05-10 10:00:00', 'Zoom', 'En ligne', true, 15.0, 'Cloud', 1);
 INSERT INTO registrations (user_id, event_id) VALUES (2, 1);
