@@ -1,4 +1,4 @@
-package com.meetuptech.backend;
+package com.e11even.backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
