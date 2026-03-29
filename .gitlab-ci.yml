@@ -53,8 +53,8 @@ sonarqube-check:
   script:
     - cd backend
     - mvn dependency:go-offline
-    - mvn dependency:copy-dependencies -DoutputDirectory=target/dependency
     - mvn clean verify
+    - mvn dependency:copy-dependencies -DoutputDirectory=target/dependency
     - mvn sonar:sonar -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=$SONAR_HOST_URL
   artifacts:
     paths:
