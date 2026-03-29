@@ -1,4 +1,4 @@
-package com.e11even.backend;
+package com.meetuptech.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
