@@ -53,7 +53,8 @@ sonarqube-check:
   script:
     - cd backend
     - mvn dependency:go-offline
-    - mvn clean package -DskipTests
+    # - mvn clean package -DskipTests
+    - mvn clean verify
     - mvn sonar:sonar
   artifacts:
     paths:
