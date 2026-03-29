@@ -17,6 +17,7 @@
 		<sonar.projectKey>m1if10-2025-g02_gp2m1_AZ0gpAA6pItf3KCWeG_Y</sonar.projectKey>
 		<sonar.projectName>gp2M1</sonar.projectName>
 		<sonar.qualitygate.wait>true</sonar.qualitygate.wait>
+		<sonar.java.libraries>target/dependency</sonar.java.libraries>
 	</properties>
 
 	<dependencies>
@@ -115,14 +116,14 @@
 						</goals>
 					</execution>
 					<execution>
-            <id>report</id>
-            <phase>test</phase>
-            <goals>
-                <goal>report</goal>
-            </goals>
-        </execution>
-    </executions>
-</plugin>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 </project>
