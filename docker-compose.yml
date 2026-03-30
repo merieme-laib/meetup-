@@ -3,11 +3,13 @@ services:
     image: postgres:15-alpine
     container_name: postgres_db
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=event_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password 
+      - POSTGRES_DB=gp2m1
     ports:
       - "5432:5432"
+    volumes:
+      - ./database/code.sql:/docker-entrypoint-initdb.d/init.sql
 
   api:
     build: ./backend
@@ -17,7 +19,7 @@ services:
     depends_on:
       - db
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/event_db
-      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/gp2m1
+      - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=password
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
