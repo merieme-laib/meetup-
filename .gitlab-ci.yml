@@ -17,16 +17,17 @@ cache:
     - .m2/repository
     - node_modules/
 
-# 🔹 BUILD FRONT (Autorisé sur main et ta branche)
+# 🔹 BUILD FRONT
 build_front:
   stage: build
   image: node:22-alpine
   script:
-    - npm ci
+    - cd frontend       # Ajout au cas où ton projet n'est pas à la racine
+    - npm install      # On remplace ci par install
     - npm run build
   artifacts:
     paths:
-      - dist/
+      - frontend/dist/  # On ajuste le chemin de l'artéfact
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "BrancheMiloud"
