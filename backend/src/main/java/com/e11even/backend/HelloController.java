@@ -25,7 +25,8 @@ public class HelloController {
 
         if (!alreadyExists) {
             User newUser = new User();
-            newUser.setName("Oxcar");
+            newUser.setFirstName("Oxcar");
+            newUser.setLastName("Test");
             newUser.setEmail(testEmail);
             newUser.setPassword("password123");
             userRepository.save(newUser);

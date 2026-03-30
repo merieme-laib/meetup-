@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // Autorise tes collègues à t'appeler depuis leur PC
 public class AuthController {
 
     @Autowired
