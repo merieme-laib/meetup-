@@ -17,7 +17,7 @@ cache:
     - .m2/repository
     - node_modules/
 
-# 🔹 BUILD FRONT
+# 🔹 BUILD FRONT (Autorisé sur main et ta branche)
 build_front:
   stage: build
   image: node:22-alpine
@@ -27,10 +27,11 @@ build_front:
   artifacts:
     paths:
       - dist/
-  only:
-    - main
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "BrancheMiloud"
 
-# 🔹 BUILD BACK + SONAR
+# 🔹 BUILD BACK + SONAR (Autorisé sur main et ta branche)
 sonarqube-check:
   stage: sonarqube-check
   image: maven:3-eclipse-temurin-21
@@ -58,10 +59,11 @@ sonarqube-check:
   artifacts:
     paths:
       - backend/target/*.jar
-  only:
-    - main
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "BrancheMiloud"
 
-# 🔹 DEPLOY FRONT
+# 🔹 DEPLOY FRONT (UNIQUEMENT SUR MAIN)
 deploy_front:
   stage: deploy
   image: node:22-alpine
@@ -75,7 +77,7 @@ deploy_front:
   only:
     - main
 
-# 🔹 DEPLOY BACKEND
+# 🔹 DEPLOY BACKEND (UNIQUEMENT SUR MAIN)
 deploy_backend:
   stage: deploy
   image: maven:3-eclipse-temurin-21
