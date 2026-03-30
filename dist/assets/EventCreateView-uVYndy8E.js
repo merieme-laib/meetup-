@@ -1,1 +1,0 @@
-import{s as e,v as t}from"./runtime-core.esm-bundler-QRIFseCU.js";import{t as n}from"./_plugin-vue_export-helper-BOai-rQB.js";var r={};function i(n,r){return t(),e(`div`,null,`Créer événement`)}var a=n(r,[[`render`,i]]);export{a as default};
