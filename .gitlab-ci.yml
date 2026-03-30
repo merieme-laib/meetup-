@@ -15,24 +15,24 @@ cache:
   paths:
     - .sonar/cache
     - .m2/repository
-    - node_modules/
+    - frontend/node_modules/
 
 # 🔹 BUILD FRONT
 build_front:
   stage: build
   image: node:22-alpine
   script:
-    - cd frontend       # Ajout au cas où ton projet n'est pas à la racine
-    - npm install      # On remplace ci par install
+    - cd frontend
+    - npm install  # Utilise install au lieu de ci si tu n'as pas de lockfile
     - npm run build
   artifacts:
     paths:
-      - frontend/dist/  # On ajuste le chemin de l'artéfact
+      - frontend/dist/
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "BrancheMiloud"
 
-# 🔹 BUILD BACK + SONAR (Autorisé sur main et ta branche)
+# 🔹 BUILD BACK + SONAR
 sonarqube-check:
   stage: sonarqube-check
   image: maven:3-eclipse-temurin-21
@@ -54,9 +54,8 @@ sonarqube-check:
       EOF
   script:
     - cd backend
-    - mvn dependency:go-offline
     - mvn clean package -DskipTests
-    - mvn sonar:sonar
+    - mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN
   artifacts:
     paths:
       - backend/target/*.jar
@@ -64,35 +63,11 @@ sonarqube-check:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "BrancheMiloud"
 
-# 🔹 DEPLOY FRONT (UNIQUEMENT SUR MAIN)
-deploy_front:
-  stage: deploy
-  image: node:22-alpine
-  before_script:
-    - apk add --no-cache openssh-client
-    - chmod 400 "$CI_SSH_KEY"
-  script:
-    - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" -r dist/* "gitlabci@${VM_IP}:${REMOTE_FRONT_PATH}/"
-  dependencies:
-    - build_front
-  only:
-    - main
-
-# 🔹 DEPLOY BACKEND (UNIQUEMENT SUR MAIN)
+# 🔹 DEPLOY (Uniquement sur main pour ne pas casser la VM des collègues)
 deploy_backend:
   stage: deploy
   image: maven:3-eclipse-temurin-21
-  before_script:
-    - apt-get update && apt-get install -y openssh-client
-    - chmod 400 "$CI_SSH_KEY"
   script:
-    - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" backend/target/*.jar "gitlabci@${VM_IP}:${REMOTE_BACK_PATH}"
-    - |
-      ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" gitlabci@${VM_IP} '
-        pkill -f backend.jar || true &&
-        nohup java -jar /home/gitlabci/backend.jar > /home/gitlabci/backend.log 2>&1 &
-      '
-  dependencies:
-    - sonarqube-check
+    - echo "Déploiement réservé au main"
   only:
     - main
