@@ -30,6 +30,7 @@ build_front:
       - frontend/dist/
   only:
     - main
+    - BrancheMiloud
 
 # BUILD BACK + SONAR
 sonarqube-check:
@@ -61,6 +62,7 @@ sonarqube-check:
       - backend/target/*.jar
   only:
     - main
+    - BrancheMiloud
 
 # DEPLOY FRONT
 deploy_front:
@@ -75,6 +77,7 @@ deploy_front:
     - build_front
   only:
     - main
+    - BrancheMiloud
 
 # DEPLOY BACKEND
 deploy_backend:
@@ -84,6 +87,7 @@ deploy_backend:
     - apt-get update && apt-get install -y openssh-client
     - chmod 400 "$CI_SSH_KEY"
   script:
+    - ls -l backend/target || true
     - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" backend/target/*.jar "gitlabci@${VM_IP}:${REMOTE_BACK_PATH}"
     - |
       ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" gitlabci@${VM_IP} '
@@ -93,4 +97,5 @@ deploy_backend:
   dependencies:
     - sonarqube-check
   only:
+    - main
     - BrancheMiloud
