@@ -17,22 +17,21 @@ cache:
     - .m2/repository
     - frontend/node_modules/
 
-# 🔹 BUILD FRONT
+# BUILD FRONT
 build_front:
   stage: build
   image: node:22-alpine
   script:
     - cd frontend
-    - npm install  # Utilise install au lieu de ci si tu n'as pas de lockfile
+    - npm ci
     - npm run build
   artifacts:
     paths:
       - frontend/dist/
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "BrancheMiloud"
+  only:
+    - main
 
-# 🔹 BUILD BACK + SONAR
+# BUILD BACK + SONAR
 sonarqube-check:
   stage: sonarqube-check
   image: maven:3-eclipse-temurin-21
@@ -54,20 +53,44 @@ sonarqube-check:
       EOF
   script:
     - cd backend
+    - mvn dependency:go-offline
     - mvn clean package -DskipTests
-    - mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN
+    - mvn sonar:sonar
   artifacts:
     paths:
       - backend/target/*.jar
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "BrancheMiloud"
+  only:
+    - main
 
-# 🔹 DEPLOY (Uniquement sur main pour ne pas casser la VM des collègues)
+# DEPLOY FRONT
+deploy_front:
+  stage: deploy
+  image: node:22-alpine
+  before_script:
+    - apk add --no-cache openssh-client
+    - chmod 400 "$CI_SSH_KEY"
+  script:
+    - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" -r frontend/dist/* "gitlabci@${VM_IP}:${REMOTE_FRONT_PATH}/"
+  dependencies:
+    - build_front
+  only:
+    - main
+
+# DEPLOY BACKEND
 deploy_backend:
   stage: deploy
   image: maven:3-eclipse-temurin-21
+  before_script:
+    - apt-get update && apt-get install -y openssh-client
+    - chmod 400 "$CI_SSH_KEY"
   script:
-    - echo "Déploiement réservé au main"
+    - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" backend/target/*.jar "gitlabci@${VM_IP}:${REMOTE_BACK_PATH}"
+    - |
+      ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" gitlabci@${VM_IP} '
+        pkill -f backend.jar || true
+        nohup java -jar /home/gitlabci/backend.jar > /home/gitlabci/backend.log 2>&1 &
+      '
+  dependencies:
+    - sonarqube-check
   only:
-    - main
+    - BrancheMiloud
