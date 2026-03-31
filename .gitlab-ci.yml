@@ -87,10 +87,19 @@ deploy_backend:
     - ls -l backend/target || true
     - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" backend/target/*.jar "gitlabci@${VM_IP}:${REMOTE_BACK_PATH}"
     - |
-      ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" gitlabci@${VM_IP} '
-        pkill -f backend.jar || true
-        nohup java -jar /home/gitlabci/backend.jar > /home/gitlabci/backend.log 2>&1 &
-      '
+      ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" gitlabci@${VM_IP} "bash -lc '
+        set -e
+        command -v java >/dev/null
+        test -f /home/gitlabci/backend.jar
+        pkill -f \"/home/gitlabci/backend.jar\" || true
+        nohup java -jar /home/gitlabci/backend.jar > /home/gitlabci/backend.log 2>&1 < /dev/null &
+        sleep 3
+        if ! pgrep -f \"/home/gitlabci/backend.jar\" >/dev/null; then
+          echo \"Echec de demarrage backend, log: \"
+          tail -n 80 /home/gitlabci/backend.log || true
+          exit 1
+        fi
+      '"
   dependencies:
     - sonarqube-check
   only:
