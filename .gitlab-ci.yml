@@ -91,7 +91,7 @@ deploy_backend:
         set -ex
         command -v java >/dev/null
         test -f /home/gitlabci/backend.jar
-        (pgrep -f \"/home/gitlabci/backend.jar\" && pkill -9 -f \"/home/gitlabci/backend.jar\") || echo \"RAS\"
+        fuser -k 8080/tcp || true
         nohup java -jar /home/gitlabci/backend.jar > /home/gitlabci/backend.log 2>&1 < /dev/null &
         sleep 3
         if ! pgrep -f \"/home/gitlabci/backend.jar\" >/dev/null; then
