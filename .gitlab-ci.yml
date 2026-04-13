@@ -88,7 +88,7 @@ deploy_backend:
     - scp -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" backend/target/*.jar "gitlabci@${VM_IP}:${REMOTE_BACK_PATH}"
     - |
       ssh -o StrictHostKeyChecking=no -i "$CI_SSH_KEY" gitlabci@${VM_IP} "bash -lc '
-        set -e
+        set -ex
         command -v java >/dev/null
         test -f /home/gitlabci/backend.jar
         pkill -f \"/home/gitlabci/backend.jar\" || true
