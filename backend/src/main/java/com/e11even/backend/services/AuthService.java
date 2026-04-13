@@ -4,6 +4,7 @@ import com.e11even.backend.models.User;
 import com.e11even.backend.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -12,7 +13,19 @@ public class AuthService {
     private UserRepository userRepository;
 
     public User register(User user) {
-        // On pourrait ajouter ici le hachage du mot de passe plus tard !
         return userRepository.save(user);
+    }
+
+    public User login(String email, String password) {
+        // 1. On cherche l'utilisateur par son email
+        Optional<User> userOpt = userRepository.findByEmail(email);
+
+        // 2. On vérifie s'il existe et si le mot de passe correspond
+        if (userOpt.isPresent() && userOpt.get().getPassword().equals(password)) {
+            return userOpt.get();
+        }
+
+        // 3. Si ça rate, on lance une erreur
+        throw new RuntimeException("Email ou mot de passe incorrect");
     }
 }

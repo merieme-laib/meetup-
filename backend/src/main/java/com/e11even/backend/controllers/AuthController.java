@@ -16,4 +16,10 @@ public class AuthController {
     public User register(@RequestBody User user) {
         return authService.register(user);
     }
+
+    @PostMapping("/login")
+    public User login(@RequestBody User loginRequest) {
+        // Ici, tu dois appeler ton service qui vérifie l'email et le password
+        return authService.login(loginRequest.getEmail(), loginRequest.getPassword());
+    }
 }
