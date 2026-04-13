@@ -23,6 +23,7 @@ build_front:
   image: node:22-alpine
   script:
     - cd frontend
+    - export VITE_API_URL=$VITE_API_URL
     - npm ci
     - npm run build
   artifacts:
