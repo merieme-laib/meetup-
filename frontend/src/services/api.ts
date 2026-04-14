@@ -1,8 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'https://192.168.75.120/api', 
-  headers: { 'Content-Type': 'application/json' }
+baseURL: 'http://localhost:8080/api',
+headers: { 'Content-Type': 'application/json' }
 })
 
 api.interceptors.request.use((config) => {
