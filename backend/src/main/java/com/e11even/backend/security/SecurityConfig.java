@@ -42,7 +42,11 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // On autorise explicitement ton frontend local
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList(
+        "http://localhost:5173",
+        "http://192.168.75.120",
+        "https://192.168.75.120"
+    ));
         
         // On autorise les méthodes (POST pour le login/register, GET, etc.)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
