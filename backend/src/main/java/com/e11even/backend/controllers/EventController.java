@@ -15,20 +15,24 @@ public class EventController {
     @Autowired
     private EventRepository eventRepository;
 
-    // 1. ROUTE POUR AFFICHER LA PAGE D'ACCUEIL (Récupérer la liste)
+    // 1. ROUTE POUR LA LISTE (Accueil)
     @GetMapping
     public List<Event> getAllEvents() {
-        // Va chercher tous les évènements dans la BDD et les renvoie au format JSON
         return eventRepository.findAll();
     }
 
-    // 2. ROUTE POUR LE FORMULAIRE DE CRÉATION (Ajouter un évènement)
+    // 2. ROUTE POUR CRÉER (Formulaire)
     @PostMapping
     public ResponseEntity<Event> createEvent(@RequestBody Event event) {
-        // Pour l'instant, on sauvegarde directement l'évènement reçu du Frontend
         Event savedEvent = eventRepository.save(event);
-        
-        // On renvoie l'évènement sauvegardé avec un code 200 OK
         return ResponseEntity.ok(savedEvent);
+    }
+
+    // 3. LA FAMEUSE ROUTE POUR LE DÉTAIL (Celle qui manquait peut-être !)
+    @GetMapping("/{id}")
+    public ResponseEntity<Event> getEventById(@PathVariable Long id) {
+        return eventRepository.findById(id)
+                .map(event -> ResponseEntity.ok().body(event))
+                .orElse(ResponseEntity.notFound().build()); // C'est ici que ça renvoie 404 si l'ID n'existe pas
     }
 }
