@@ -57,7 +57,11 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // On autorise explicitement ton frontend local
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "http://192.168.75.120:5173", // L'URL de ton site sur la VM (avec port)
+            "http://192.168.75.120"       // L'URL de ton site sur la VM (sans port)
+        ));
         
         // On autorise les méthodes (POST pour le login/register, GET, etc.)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
