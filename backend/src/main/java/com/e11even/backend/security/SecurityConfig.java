@@ -1,11 +1,13 @@
 package com.e11even.backend.security;
 
+import org.springframework.beans.factory.annotation.Autowired; // <-- NOUVEAU
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; // <-- NOUVEAU
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -15,6 +17,10 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    // --- LE FAMEUX VIDEUR (FILTRE JWT) ---
+    @Autowired
+    private AuthTokenFilter authTokenFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -30,8 +36,17 @@ public class SecurityConfig {
             // 4. Règles des routes
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
+                
+                // --- LES DÉBLOQUEURS DE "FAUX 403" ---
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Laisse passer la vérification CORS du navigateur
+                .requestMatchers("/error").permitAll() // Laisse passer les vrais messages d'erreur de Spring
+                
                 .anyRequest().authenticated()
             );
+
+        // --- ON MET LE VIDEUR DEVANT LA PORTE ---
+        http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
