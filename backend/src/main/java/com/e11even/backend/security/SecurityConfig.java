@@ -58,10 +58,11 @@ public class SecurityConfig {
         
         // On autorise explicitement ton frontend local
         configuration.setAllowedOrigins(Arrays.asList(
-        "http://localhost:5173",
-        "http://192.168.75.120",
-        "https://192.168.75.120"
-    ));
+            "http://localhost:5173",       // Pour le développement local
+            "http://192.168.75.120:5173",  // Pour la VM avec le port Vite
+            "http://192.168.75.120",       // Pour la VM en HTTP simple
+            "https://192.168.75.120"       // Pour la VM en HTTPS (sécurisé)
+        ));
         
         // On autorise les méthodes (POST pour le login/register, GET, etc.)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
