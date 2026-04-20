@@ -101,16 +101,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.store' // Vérifie que le chemin est bon !
+import { useAuthStore } from '@/stores/auth.store'
+import api from '@/services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-// L'état de notre formulaire
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-// Les données de l'évènement liées aux inputs
 const eventData = ref({
   title: '',
   description: '',
@@ -122,38 +121,24 @@ const eventData = ref({
   category: '',
   imageUrl: '',
   isOnline: false,
-  creatorId: authStore.user?.id || 1 // On met l'ID de l'utilisateur connecté
+  creatorId: authStore.user?.id || 1
 })
 
-// La fonction appelée quand on clique sur "Créer"
 async function submitEvent() {
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    // 1. On récupère le fameux Token VIP
-    const token = authStore.token;
-
-    // 2. On envoie la requête au Backend
-    const response = await fetch('http://localhost:8080/api/events', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // TRÈS IMPORTANT : On donne le token au videur !
-        'Authorization': `Bearer ${token}` 
-      },
-      body: JSON.stringify(eventData.value)
-    })
-
-    if (!response.ok) {
+    const response = await api.post('/events', eventData.value)
+    
+    if (response.status !== 200 && response.status !== 201) {
       throw new Error('Erreur lors de la création de l\'évènement.')
     }
 
-    // 3. Si c'est un succès, on redirige vers la liste des évènements
     router.push('/evenements')
 
   } catch (error: any) {
-    errorMessage.value = error.message
+    errorMessage.value = error.response?.data?.message || error.message || "Une erreur inattendue s'est produite."
   } finally {
     isLoading.value = false
   }
