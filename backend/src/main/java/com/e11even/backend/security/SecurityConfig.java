@@ -18,14 +18,14 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // --- LE FAMEUX VIDEUR (FILTRE JWT) ---
+    //  (FILTRE JWT) 
     @Autowired
     private AuthTokenFilter authTokenFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 1. ON ACTIVE CORS ICI !
+            // 1. ON ACTIVE CORS ICI 
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             // 2. On désactive CSRF
             .csrf(csrf -> csrf.disable())
@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
                 
-                // --- LES DÉBLOQUEURS DE "FAUX 403" ---
+                //LES DÉBLOQUEURS DE FAUX 403 
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Laisse passer la vérification CORS du navigateur
                 .requestMatchers("/error").permitAll() // Laisse passer les vrais messages d'erreur de Spring
                 
@@ -51,7 +51,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // --- LA NOUVELLE RÈGLE CORS POUR ACCEPTER TON FRONTEND ---
+    // --- LA NOUVELLE RÈGLE CORS POUR ACCEPTER FRONTEND ---
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -71,7 +71,7 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(Arrays.asList("*"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // On applique cette règle à toutes les URL de ton API (/**)
+        // On applique cette règle à toutes les URL de l' API (/**)
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }

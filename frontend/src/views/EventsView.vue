@@ -76,6 +76,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
+import api from '@/services/api' // 👈 ON IMPORTE NOTRE OUTIL API ICI !
 
 const authStore = useAuthStore()
 
@@ -85,11 +86,13 @@ const error = ref('')
 
 async function fetchEvents() {
   try {
-    const response = await fetch('http://localhost:8080/api/events')
-    if (!response.ok) throw new Error('Impossible de charger les évènements.')
-    events.value = await response.json()
+    
+    const response = await api.get('/events')
+    
+    events.value = response.data 
+    
   } catch (e: any) {
-    error.value = e.message
+    error.value = "Impossible de charger les évènements."
   } finally {
     isLoading.value = false
   }
