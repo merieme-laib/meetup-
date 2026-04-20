@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@/types/user'
-import router from '@/router' 
+import router from '@/router'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
+  // Restaure le user depuis localStorage au démarrage
+  const savedUser = localStorage.getItem('user')
+  const user = ref<User | null>(savedUser ? JSON.parse(savedUser) : null)
   const token = ref<string | null>(localStorage.getItem('token'))
 
   const isLoggedIn = computed(() => !!token.value && !!user.value)
@@ -13,13 +15,15 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = newUser
     token.value = newToken
     localStorage.setItem('token', newToken)
+    localStorage.setItem('user', JSON.stringify(newUser))
   }
 
   function logout() {
     user.value = null
     token.value = null
     localStorage.removeItem('token')
-    router.push('/login') 
+    localStorage.removeItem('user')
+    router.push('/connexion')
   }
 
   return { user, token, isLoggedIn, setAuth, logout }
