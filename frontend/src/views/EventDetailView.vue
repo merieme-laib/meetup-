@@ -82,9 +82,11 @@
             </div>
 
             <button 
-              class="w-full py-3.5 px-4 text-white font-bold rounded-xl shadow-sm transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              @click="handleParticipate"
+              :disabled="!authStore.isLoggedIn || isParticipating"
+              class="w-full py-3.5 px-4 text-white font-bold rounded-xl shadow-sm transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               style="background-color: #7A9E6E">
-              Participer à l'évènement
+              {{ isParticipating ? 'Inscription en cours...' : "Participer à l'évènement" }}
             </button>
             
             <p v-if="!authStore.isLoggedIn" class="text-xs text-center text-gray-500 mt-3">
@@ -102,6 +104,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import api from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -110,28 +113,39 @@ const authStore = useAuthStore()
 const event = ref<any>(null)
 const isLoading = ref(true)
 const error = ref('')
+const isParticipating = ref(false)
 
-// On récupère l'ID depuis l'URL (ex: /evenements/1 -> id = 1)
 const eventId = route.params.id
 
+// 1. Récupérer les détails de l'évènement
 async function fetchEventDetails() {
   try {
-    const response = await fetch(`http://localhost:8080/api/events/${eventId}`)
-    
-    if (response.status === 404) {
-      throw new Error("Cet évènement n'existe pas ou a été supprimé.")
-    }
-    if (!response.ok) {
-      throw new Error("Erreur lors de la récupération de l'évènement.")
-    }
-
-    const data = await response.json()
-    event.value = data
-    
+    const response = await api.get(`/events/${eventId}`)
+    event.value = response.data
   } catch (e: any) {
-    error.value = e.message
+    if (e.response && e.response.status === 404) {
+      error.value = "Cet évènement n'existe pas ou a été supprimé."
+    } else {
+      error.value = "Erreur lors de la récupération de l'évènement."
+    }
   } finally {
     isLoading.value = false
+  }
+}
+
+// 2. Participer à l'évènement
+async function handleParticipate() {
+  if (!authStore.isLoggedIn) return
+  
+  isParticipating.value = true
+  try {
+    const response = await api.post(`/events/${eventId}/participate`)
+    event.value.participantsCount = response.data.newCount
+    alert("🎉 Inscription réussie ! On a hâte de vous y voir !")
+  } catch (e: any) {
+    alert("Oups, une erreur est survenue lors de l'inscription.")
+  } finally {
+    isParticipating.value = false
   }
 }
 
