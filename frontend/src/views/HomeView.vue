@@ -128,7 +128,7 @@
         </div>
 
         <!-- Cards grille -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <div
             v-for="event in mockEvents"
             :key="event.id"
@@ -167,8 +167,15 @@
               </div>
             </div>
           </div>
+        </div> -->
+
+        
+        <!-- Cards grille -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <EventCard v-for="event in events" :key="event.id" :event="event" />
         </div>
 
+        
         <div class="text-center mt-8">
           <RouterLink
             to="/evenements"
@@ -221,12 +228,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+// import { ref } from 'vue'
+// import { useRouter } from 'vue-router'
+// import {
+//   Search, ArrowRight, MapPin, Users, CalendarDays,
+//   TrendingUp, Plus, ChevronRight
+// } from 'lucide-vue-next'
+
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Search, ArrowRight, MapPin, Users, CalendarDays,
   TrendingUp, Plus, ChevronRight
 } from 'lucide-vue-next'
+import api from '@/services/api'
+import EventCard from '@/components/event/EventCard.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -251,47 +267,59 @@ const stats = [
 ]
 
 // Données mock temporaires — à remplacer par les appels API plus tard
-const mockEvents = ref([
-  {
-    id: 1,
-    title: 'Vue.js Paris Meetup #42',
-    description: 'Soirée dédiée aux dernières nouveautés de Vue 3, Pinia et Nuxt 4.',
-    date: '2025-04-15T19:00:00',
-    city: 'Paris',
-    isOnline: false,
-    imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&q=80',
-    price: 0,
-    category: 'Développement',
-    participantsCount: 87,
-    likesCount: 34,
-  },
-  {
-    id: 2,
-    title: 'Workshop Spring Boot & Docker',
-    description: 'Apprenez à conteneuriser une application Spring Boot avec Docker Compose.',
-    date: '2025-04-20T14:00:00',
-    city: 'Lyon',
-    isOnline: false,
-    imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&q=80',
-    price: 15,
-    category: 'Technologie',
-    participantsCount: 32,
-    likesCount: 21,
-  },
-  {
-    id: 3,
-    title: 'Introduction à la Cybersécurité',
-    description: 'Découvrez les bases de la sécurité informatique et les bonnes pratiques.',
-    date: '2025-04-25T18:30:00',
-    city: 'En ligne',
-    isOnline: true,
-    imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=80',
-    price: 0,
-    category: 'Sécurité',
-    participantsCount: 156,
-    likesCount: 89,
-  },
-])
+// const mockEvents = ref([
+//   {
+//     id: 1,
+//     title: 'Vue.js Paris Meetup #42',
+//     description: 'Soirée dédiée aux dernières nouveautés de Vue 3, Pinia et Nuxt 4.',
+//     date: '2025-04-15T19:00:00',
+//     city: 'Paris',
+//     isOnline: false,
+//     imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&q=80',
+//     price: 0,
+//     category: 'Développement',
+//     participantsCount: 87,
+//     likesCount: 34,
+//   },
+//   {
+//     id: 2,
+//     title: 'Workshop Spring Boot & Docker',
+//     description: 'Apprenez à conteneuriser une application Spring Boot avec Docker Compose.',
+//     date: '2025-04-20T14:00:00',
+//     city: 'Lyon',
+//     isOnline: false,
+//     imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&q=80',
+//     price: 15,
+//     category: 'Technologie',
+//     participantsCount: 32,
+//     likesCount: 21,
+//   },
+//   {
+//     id: 3,
+//     title: 'Introduction à la Cybersécurité',
+//     description: 'Découvrez les bases de la sécurité informatique et les bonnes pratiques.',
+//     date: '2025-04-25T18:30:00',
+//     city: 'En ligne',
+//     isOnline: true,
+//     imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=80',
+//     price: 0,
+//     category: 'Sécurité',
+//     participantsCount: 156,
+//     likesCount: 89,
+//   },
+// ])
+
+
+const events = ref<any[]>([])
+
+onMounted(async () => {
+  try {
+    const response = await api.get('/events')
+    events.value = response.data.slice(0, 3) // On affiche que 3 sur l'accueil
+  } catch (e) {
+    console.error('Erreur chargement événements', e)
+  }
+})
 
 function handleSearch() {
   const q = searchQuery.value.trim()

@@ -24,7 +24,7 @@
           <span v-if="event.category" class="bg-gray-100 px-3 py-1 rounded-full font-medium">
             {{ event.category }}
           </span>
-          <span v-if="event.isOnline" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium">
+          <span v-if="event.online" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium">
             💻 Évènement en ligne
           </span>
         </div>
@@ -39,8 +39,8 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
         
+        <!-- Contenu principal -->
         <div class="lg:col-span-2 space-y-8">
-          
           <section>
             <h2 class="text-2xl font-bold text-gray-900 mb-4">À propos de cet évènement</h2>
             <div class="prose max-w-none text-gray-600 whitespace-pre-line leading-relaxed">
@@ -48,8 +48,19 @@
             </div>
           </section>
 
+          <section v-if="!event.online">
+            <h2 class="text-xl font-bold text-gray-900 mb-3">Lieu</h2>
+            <div class="flex items-start gap-3 p-4 rounded-xl border border-gray-100" style="background-color: #F2F5F0">
+              <div class="text-xl">📍</div>
+              <div>
+                <div class="font-semibold text-gray-900">{{ event.location }}</div>
+                <div class="text-sm text-gray-500">{{ event.city }}</div>
+              </div>
+            </div>
+          </section>
         </div>
 
+        <!-- Sidebar -->
         <div class="lg:col-span-1">
           <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-24">
             
@@ -60,7 +71,7 @@
               </span>
             </div>
 
-            <div class="space-y-4 mb-8">
+            <div class="space-y-4 mb-6">
               <div class="flex items-start gap-3">
                 <div class="text-xl">📍</div>
                 <div>
@@ -81,17 +92,43 @@
               </div>
             </div>
 
+            <!-- Bouton inscription -->
             <button 
-              @click="handleParticipate"
-              :disabled="!authStore.isLoggedIn || isParticipating"
-              class="w-full py-3.5 px-4 text-white font-bold rounded-xl shadow-sm transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style="background-color: #7A9E6E">
-              {{ isParticipating ? 'Inscription en cours...' : "Participer à l'évènement" }}
+              @click="handleRegister"
+              :disabled="loadingRegister"
+              class="w-full py-3.5 px-4 font-bold rounded-xl shadow-sm transition-all"
+              :style="{
+                backgroundColor: isRegistered ? '#E0ECD9' : '#7A9E6E',
+                color: isRegistered ? '#3D5C38' : 'white',
+                opacity: loadingRegister ? 0.7 : 1
+              }">
+              {{ loadingRegister ? 'En cours...' : isRegistered ? '✓ Inscrit — Se désinscrire' : "Participer à l'évènement" }}
+            </button>
+
+            <!-- Bouton like -->
+            <button
+              @click="handleLike"
+              :disabled="loadingLike"
+              class="w-full mt-3 py-3 px-4 font-semibold rounded-xl border transition-all flex items-center justify-center gap-2"
+              :style="{
+                borderColor: isLiked ? '#7A9E6E' : '#e5e7eb',
+                color: isLiked ? '#5E7D58' : '#6b7280',
+                backgroundColor: isLiked ? '#F2F5F0' : 'white'
+              }">
+              {{ isLiked ? '❤️ Aimé' : '🤍 J\'aime' }} · {{ event.likesCount || 0 }}
             </button>
             
             <p v-if="!authStore.isLoggedIn" class="text-xs text-center text-gray-500 mt-3">
               Connectez-vous pour pouvoir participer.
             </p>
+
+            <!-- Bouton modifier si créateur -->
+            <RouterLink
+              v-if="authStore.user && authStore.user.id === event.creatorId"
+              :to="`/evenements/${event.id}/modifier`"
+              class="w-full mt-3 py-2.5 px-4 font-semibold rounded-xl border border-gray-200 text-gray-600 hover:border-gray-400 transition-all flex items-center justify-center gap-2 text-sm">
+              ✏️ Modifier l'évènement
+            </RouterLink>
           </div>
         </div>
 
@@ -113,11 +150,13 @@ const authStore = useAuthStore()
 const event = ref<any>(null)
 const isLoading = ref(true)
 const error = ref('')
-const isParticipating = ref(false)
+const isRegistered = ref(false)
+const isLiked = ref(false)
+const loadingRegister = ref(false)
+const loadingLike = ref(false)
 
 const eventId = route.params.id
 
-// 1. Récupérer les détails de l'évènement
 async function fetchEventDetails() {
   try {
     const response = await api.get(`/events/${eventId}`)
@@ -133,19 +172,53 @@ async function fetchEventDetails() {
   }
 }
 
-// 2. Participer à l'évènement
-async function handleParticipate() {
-  if (!authStore.isLoggedIn) return
-  
-  isParticipating.value = true
+async function handleRegister() {
+  if (!authStore.isLoggedIn) {
+    router.push({ path: '/connexion', query: { redirect: route.fullPath } })
+    return
+  }
+  loadingRegister.value = true
   try {
-    const response = await api.post(`/events/${eventId}/participate`)
-    event.value.participantsCount = response.data.newCount
-    alert("🎉 Inscription réussie ! On a hâte de vous y voir !")
+    if (isRegistered.value) {
+      await api.delete(`/events/${eventId}/register`)
+      event.value.participantsCount = Math.max(0, event.value.participantsCount - 1)
+      isRegistered.value = false
+    } else {
+      const response = await api.post(`/events/${eventId}/register`)
+      event.value.participantsCount = response.data.participantsCount
+      isRegistered.value = true
+    }
   } catch (e: any) {
-    alert("Oups, une erreur est survenue lors de l'inscription.")
+    if (e.response?.status === 400) {
+      alert("Vous êtes déjà inscrit à cet évènement.")
+    } else {
+      alert("Une erreur est survenue.")
+    }
   } finally {
-    isParticipating.value = false
+    loadingRegister.value = false
+  }
+}
+
+async function handleLike() {
+  if (!authStore.isLoggedIn) {
+    router.push({ path: '/connexion', query: { redirect: route.fullPath } })
+    return
+  }
+  loadingLike.value = true
+  try {
+    if (isLiked.value) {
+      await api.delete(`/events/${eventId}/like`)
+      event.value.likesCount = Math.max(0, event.value.likesCount - 1)
+      isLiked.value = false
+    } else {
+      const response = await api.post(`/events/${eventId}/like`)
+      event.value.likesCount = response.data.likesCount
+      isLiked.value = true
+    }
+  } catch (e: any) {
+    alert("Une erreur est survenue.")
+  } finally {
+    loadingLike.value = false
   }
 }
 
