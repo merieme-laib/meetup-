@@ -39,10 +39,10 @@ public class Event {
     // Pour l'instant, on stocke juste l'ID du créateur pour simplifier
     private Long creatorId;
 
-    @Transient
+    @Column(name = "participants_count", columnDefinition = "integer default 0")
     private int participantsCount = 0;
 
-    @Transient
+    @Column(name = "likes_count", columnDefinition = "integer default 0")
     private int likesCount = 0;
 
     // @Transient = "Ne crée pas de colonne dans la BDD pour ça, c'est juste pour le Front"
