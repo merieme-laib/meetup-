@@ -2,6 +2,7 @@ package com.e11even.backend.controllers;
 
 import com.e11even.backend.dto.LoginRequest;
 import com.e11even.backend.dto.RegisterRequest;
+import com.e11even.backend.dto.UserProfileResponse; 
 import com.e11even.backend.models.User;
 import com.e11even.backend.security.JwtUtils;
 import com.e11even.backend.services.AuthService;
@@ -37,7 +38,7 @@ public class AuthController {
 
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
-            response.put("user", newUser);
+            response.put("user", new UserProfileResponse(newUser));
 
             return ResponseEntity.ok(response);
             
@@ -61,7 +62,7 @@ public class AuthController {
 
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
-            response.put("user", user);
+            response.put("user", new UserProfileResponse(user));
 
             return ResponseEntity.ok(response);
 
