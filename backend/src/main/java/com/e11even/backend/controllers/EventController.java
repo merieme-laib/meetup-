@@ -52,18 +52,48 @@ public class EventController {
                 .getId();
     }
 
+
+    private void enrichEvent(Event event, Long userId) {
+        // Compteurs depuis les tables
+        event.setParticipantsCount((int) registrationRepository.countByEventId(event.getId()));
+        event.setLikesCount((int) likeRepository.countByEventId(event.getId()));
+        // État utilisateur
+        if (userId != null) {
+            event.setIsRegistered(registrationRepository.existsByUserIdAndEventId(userId, event.getId()));
+            event.setIsLiked(likeRepository.existsByUserIdAndEventId(userId, event.getId()));
+        }
+    }
+
     // 1. LISTE
+    // GET /api/events
     @GetMapping
-    public List<Event> getAllEvents() {
-        return eventRepository.findAll();
+    public List<Event> getAllEvents(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        List<Event> events = eventRepository.findAll();
+        Long userId = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try { userId = getCurrentUserId(authHeader); } catch (Exception ignored) {}
+        }
+        Long finalUserId = userId;
+        events.forEach(event -> enrichEvent(event, finalUserId));
+        return events;
     }
 
     // 2. DÉTAIL
+    // GET /api/events/:id
     @GetMapping("/{id}")
-    public ResponseEntity<Event> getEventById(@PathVariable Long id) {
-        return eventRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Event> getEventById(
+            @PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        Long userId = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try { userId = getCurrentUserId(authHeader); } catch (Exception ignored) {}
+        }
+        Long finalUserId = userId;
+        return eventRepository.findById(id).map(event -> {
+            enrichEvent(event, finalUserId);
+            return ResponseEntity.ok(event);
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // 3. CRÉER

@@ -136,8 +136,8 @@ const props = defineProps<{
 }>()
 
 const authStore = useAuthStore()
-const isLiked = ref(false)
-const isRegistered = ref(false)
+const isLiked = ref(props.event.isLiked || false)
+const isRegistered = ref(props.event.isRegistered || false)
 
 const isFull = computed(() =>
   props.event.maxParticipants && props.event.participantsCount >= props.event.maxParticipants
@@ -182,9 +182,11 @@ async function handleLike() {
     if (isLiked.value) {
       await api.delete(`/events/${props.event.id}/like`)
       isLiked.value = false
+      props.event.likesCount = Math.max(0, props.event.likesCount - 1)
     } else {
-      await api.post(`/events/${props.event.id}/like`)
+      const response = await api.post(`/events/${props.event.id}/like`)
       isLiked.value = true
+      props.event.likesCount = response.data.likesCount
     }
   } catch (e) {
     console.error('Erreur like', e)
@@ -197,9 +199,11 @@ async function handleRegister() {
     if (isRegistered.value) {
       await api.delete(`/events/${props.event.id}/register`)
       isRegistered.value = false
+      props.event.participantsCount = Math.max(0, props.event.participantsCount - 1)
     } else {
-      await api.post(`/events/${props.event.id}/register`)
+      const response = await api.post(`/events/${props.event.id}/register`)
       isRegistered.value = true
+      props.event.participantsCount = response.data.participantsCount
     }
   } catch (e) {
     console.error('Erreur inscription', e)

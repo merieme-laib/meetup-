@@ -159,21 +159,49 @@
           <!-- Inscriptions -->
           <div v-if="activeTab === 'registrations'" class="bg-white rounded-xl border border-gray-200 p-6">
             <h2 class="mb-5 font-extrabold text-lg">Mes inscriptions</h2>
-            <div class="text-center py-12">
+            <div v-if="myRegistrations.length === 0" class="text-center py-12">
               <CheckCircle :size="36" class="text-gray-200 mx-auto mb-3" />
               <p class="text-gray-400 text-sm">Vous n'êtes inscrit à aucun évènement pour l'instant.</p>
               <RouterLink to="/evenements" class="inline-block mt-4 px-4 py-2 rounded-lg text-sm text-white font-semibold" style="background-color: #7A9E6E">
                 Explorer les évènements
               </RouterLink>
             </div>
+            <div v-else class="space-y-3">
+              <div v-for="event in myRegistrations" :key="event.id"
+                class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-900 text-sm truncate">{{ event.title }}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">{{ event.city }} · {{ event.category }}</p>
+                </div>
+                <RouterLink :to="`/evenements/${event.id}`"
+                  class="px-3 py-1.5 text-xs font-semibold rounded-lg text-white ml-3"
+                  style="background-color: #7A9E6E">
+                  Voir
+                </RouterLink>
+              </div>
+            </div>
           </div>
 
           <!-- Likes -->
           <div v-if="activeTab === 'liked'" class="bg-white rounded-xl border border-gray-200 p-6">
             <h2 class="mb-5 font-extrabold text-lg">Évènements likés</h2>
-            <div class="text-center py-12">
+            <div v-if="myLikes.length === 0" class="text-center py-12">
               <Heart :size="36" class="text-gray-200 mx-auto mb-3" />
               <p class="text-gray-400 text-sm">Vous n'avez pas encore liké d'évènements.</p>
+            </div>
+            <div v-else class="space-y-3">
+              <div v-for="event in myLikes" :key="event.id"
+                class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-900 text-sm truncate">{{ event.title }}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">{{ event.city }} · {{ event.category }}</p>
+                </div>
+                <RouterLink :to="`/evenements/${event.id}`"
+                  class="px-3 py-1.5 text-xs font-semibold rounded-lg text-white ml-3"
+                  style="background-color: #7A9E6E">
+                  Voir
+                </RouterLink>
+              </div>
             </div>
           </div>
 
@@ -185,12 +213,32 @@
                 <Plus :size="14" /> Créer
               </RouterLink>
             </div>
-            <div class="text-center py-12">
+            <div v-if="myEvents.length === 0" class="text-center py-12">
               <CalendarDays :size="36" class="text-gray-200 mx-auto mb-3" />
               <p class="text-gray-400 text-sm">Vous n'avez pas encore créé d'évènement.</p>
               <RouterLink to="/evenements/creer" class="inline-block mt-4 px-4 py-2 rounded-lg text-sm text-white font-semibold" style="background-color: #7A9E6E">
                 Créer mon premier évènement
               </RouterLink>
+            </div>
+            <div v-else class="space-y-3">
+              <div v-for="event in myEvents" :key="event.id"
+                class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-gray-900 text-sm truncate">{{ event.title }}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">{{ event.city }} · {{ event.category }}</p>
+                </div>
+                <div class="flex items-center gap-2 ml-3">
+                  <RouterLink :to="`/evenements/${event.id}/modifier`"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:border-gray-400 transition-colors">
+                    Modifier
+                  </RouterLink>
+                  <RouterLink :to="`/evenements/${event.id}`"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-colors"
+                    style="background-color: #7A9E6E">
+                    Voir
+                  </RouterLink>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -221,13 +269,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   User as UserIcon, Mail, CheckCircle, Heart, CalendarDays,
   Settings, Edit2, Plus, LogOut, Save, X, Camera
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth.store'
+import api from '@/services/api'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -247,6 +296,9 @@ const editMode = ref(false)
 const saveSuccess = ref(false)
 const avatarPreview = ref<string | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const myEvents = ref<any[]>([])
+const myRegistrations = ref<any[]>([])
+const myLikes = ref<any[]>([])
 
 const editForm = reactive({
   firstName: authStore.user?.firstName || '',
@@ -274,9 +326,9 @@ const userInitials = computed(() => {
 })
 
 const profileStats = computed(() => [
-  { value: 0, label: 'Évènements' },
-  { value: 0, label: 'Inscriptions' },
-  { value: 0, label: 'Likes' },
+  { value: myEvents.value.length, label: 'Évènements' },
+  { value: myRegistrations.value.length, label: 'Inscriptions' },
+  { value: myLikes.value.length, label: 'Likes' },
 ])
 
 const profileInfos = computed(() => [
@@ -285,17 +337,45 @@ const profileInfos = computed(() => [
   { icon: Mail,     label: 'E-mail',  value: authStore.user?.email     || '—' },
 ])
 
+onMounted(async () => {
+  if (!authStore.isLoggedIn) return
+  try {
+    const [eventsRes, registrationsRes, likesRes] = await Promise.all([
+      api.get('/events'),
+      api.get('/users/me/registrations'),
+      api.get('/users/me/likes'),
+    ])
+    myEvents.value = eventsRes.data.filter(
+      (e: any) => e.creatorId === authStore.user?.id
+    )
+    myRegistrations.value = registrationsRes.data
+    myLikes.value = likesRes.data
+  } catch (e) {
+    console.error('Erreur chargement profil', e)
+  }
+})
+
 function handleAvatarChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
   avatarPreview.value = URL.createObjectURL(file)
 }
 
-function handleSave() {
-  // TODO : appel API PATCH /users/me
-  editMode.value = false
-  saveSuccess.value = true
-  setTimeout(() => (saveSuccess.value = false), 3000)
+async function handleSave() {
+  try {
+    const response = await api.put('/users/me', {
+      firstName: editForm.firstName,
+      lastName: editForm.lastName,
+      bio: editForm.bio,
+    })
+    // Met à jour le store avec les nouvelles infos
+    authStore.setAuth(response.data, authStore.token!)
+    editMode.value = false
+    saveSuccess.value = true
+    setTimeout(() => (saveSuccess.value = false), 3000)
+  } catch (e) {
+    console.error('Erreur sauvegarde profil', e)
+  }
 }
 
 function handleLogout() {

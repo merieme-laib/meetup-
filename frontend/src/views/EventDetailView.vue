@@ -190,7 +190,8 @@ async function handleRegister() {
     }
   } catch (e: any) {
     if (e.response?.status === 400) {
-      alert("Vous êtes déjà inscrit à cet évènement.")
+      // Déjà inscrit — on met à jour l'état sans afficher d'erreur
+      isRegistered.value = true
     } else {
       alert("Une erreur est survenue.")
     }
@@ -235,7 +236,20 @@ function formatDate(dateString: string) {
   }).format(date).replace(',', ' à')
 }
 
-onMounted(() => {
-  fetchEventDetails()
+onMounted(async () => {
+  try {
+    const response = await api.get(`/events/${eventId}`)
+    event.value = response.data
+    isRegistered.value = response.data.isRegistered || false
+    isLiked.value = response.data.isLiked || false
+  } catch (e: any) {
+    if (e.response?.status === 404) {
+      error.value = "Cet évènement n'existe pas ou a été supprimé."
+    } else {
+      error.value = "Erreur lors de la récupération de l'évènement."
+    }
+  } finally {
+    isLoading.value = false
+  }
 })
 </script>

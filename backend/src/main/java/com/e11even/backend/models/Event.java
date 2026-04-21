@@ -39,8 +39,11 @@ public class Event {
     // Pour l'instant, on stocke juste l'ID du créateur pour simplifier
     private Long creatorId;
 
-    // private int participantsCount = 0;
-    // private int likesCount = 0;
+    @Transient
+    private int participantsCount = 0;
+
+    @Transient
+    private int likesCount = 0;
 
     // @Transient = "Ne crée pas de colonne dans la BDD pour ça, c'est juste pour le Front"
     @Transient
@@ -95,11 +98,11 @@ public class Event {
     public Long getCreatorId() { return creatorId; }
     public void setCreatorId(Long creatorId) { this.creatorId = creatorId; }
 
-    // public int getParticipantsCount() { return participantsCount; }
-    // public void setParticipantsCount(int participantsCount) { this.participantsCount = participantsCount; }
+    public int getParticipantsCount() { return participantsCount; }
+    public void setParticipantsCount(int participantsCount) { this.participantsCount = participantsCount; }
 
-    // public int getLikesCount() { return likesCount; }
-    // public void setLikesCount(int likesCount) { this.likesCount = likesCount; }
+    public int getLikesCount() { return likesCount; }
+    public void setLikesCount(int likesCount) { this.likesCount = likesCount; }
 
     public Boolean getIsRegistered() { return isRegistered; }
     public void setIsRegistered(Boolean isRegistered) { this.isRegistered = isRegistered; }
