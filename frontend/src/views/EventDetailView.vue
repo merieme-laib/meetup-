@@ -1,5 +1,16 @@
 ﻿<template>
+
+  
   <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- En haut du template -->
+    <ConfirmModal
+      v-model="showUnregisterModal"
+      title="Se désinscrire ?"
+      message="Voulez-vous vraiment vous désinscrire de cet évènement ?"
+      confirmText="Se désinscrire"
+      confirmColor="#ef4444"
+      @confirm="confirmUnregister"
+    />
     
     <div v-if="isLoading" class="flex justify-center py-20">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2" style="border-color: #7A9E6E"></div>
@@ -142,20 +153,23 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import api from '@/services/api'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
 const event = ref<any>(null)
-const isLoading = ref(true)
-const error = ref('')
+  const isLoading = ref(true)
+  const error = ref('')
 const isRegistered = ref(false)
 const isLiked = ref(false)
 const loadingRegister = ref(false)
 const loadingLike = ref(false)
 
 const eventId = route.params.id
+
+const showUnregisterModal = ref(false)
 
 // async function fetchEventDetails() {
 //   try {
@@ -177,24 +191,35 @@ async function handleRegister() {
     router.push({ path: '/connexion', query: { redirect: route.fullPath } })
     return
   }
+  if (isRegistered.value) {
+    showUnregisterModal.value = true
+    return
+  }
   loadingRegister.value = true
   try {
-    if (isRegistered.value) {
-      await api.delete(`/events/${eventId}/register`)
-      event.value.participantsCount = Math.max(0, event.value.participantsCount - 1)
-      isRegistered.value = false
-    } else {
-      const response = await api.post(`/events/${eventId}/register`)
-      event.value.participantsCount = response.data.participantsCount
-      isRegistered.value = true
-    }
+    const response = await api.post(`/events/${eventId}/register`)
+    event.value.participantsCount = response.data.participantsCount
+    isRegistered.value = true
   } catch (e: any) {
     if (e.response?.status === 400) {
-      // Déjà inscrit — on met à jour l'état sans afficher d'erreur
       isRegistered.value = true
     } else {
       alert("Une erreur est survenue.")
     }
+  } finally {
+    loadingRegister.value = false
+  }
+}
+
+async function confirmUnregister() {
+  showUnregisterModal.value = false
+  loadingRegister.value = true
+  try {
+    await api.delete(`/events/${eventId}/register`)
+    event.value.participantsCount = Math.max(0, event.value.participantsCount - 1)
+    isRegistered.value = false
+  } catch {
+    alert("Une erreur est survenue.")
   } finally {
     loadingRegister.value = false
   }

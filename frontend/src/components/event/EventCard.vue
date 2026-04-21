@@ -1,6 +1,14 @@
 <template>
   <div class="group bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 overflow-hidden flex flex-col">
-    
+    <ConfirmModal
+      v-model="showUnregisterModal"
+      title="Se désinscrire ?"
+      message="Voulez-vous vraiment vous désinscrire de cet évènement ?"
+      confirmText="Se désinscrire"
+      confirmColor="#ef4444"
+      @confirm="confirmUnregister"
+    />
+
     <!-- Image -->
     <div class="relative overflow-hidden" style="height: 180px">
       <img
@@ -130,6 +138,8 @@ import { ref, computed } from 'vue'
 import { Heart, MapPin, Users, Wifi } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth.store'
 import api from '@/services/api'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+
 
 const props = defineProps<{
   event: any
@@ -138,9 +148,10 @@ const props = defineProps<{
 const authStore = useAuthStore()
 const isLiked = ref(props.event.isLiked || false)
 const isRegistered = ref(props.event.isRegistered || false)
+const showUnregisterModal = ref(false)
 
 const isFull = computed(() =>
-  props.event.maxParticipants && props.event.participantsCount >= props.event.maxParticipants
+props.event.maxParticipants && props.event.participantsCount >= props.event.maxParticipants
 )
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
@@ -195,18 +206,27 @@ async function handleLike() {
 
 async function handleRegister() {
   if (!authStore.isLoggedIn) return
+  if (isRegistered.value) {
+    showUnregisterModal.value = true
+    return
+  }
   try {
-    if (isRegistered.value) {
-      await api.delete(`/events/${props.event.id}/register`)
-      isRegistered.value = false
-      props.event.participantsCount = Math.max(0, props.event.participantsCount - 1)
-    } else {
-      const response = await api.post(`/events/${props.event.id}/register`)
-      isRegistered.value = true
-      props.event.participantsCount = response.data.participantsCount
-    }
+    const response = await api.post(`/events/${props.event.id}/register`)
+    isRegistered.value = true
+    props.event.participantsCount = response.data.participantsCount
   } catch (e) {
     console.error('Erreur inscription', e)
+  }
+}
+
+async function confirmUnregister() {
+  showUnregisterModal.value = false
+  try {
+    await api.delete(`/events/${props.event.id}/register`)
+    isRegistered.value = false
+    props.event.participantsCount = Math.max(0, props.event.participantsCount - 1)
+  } catch (e) {
+    console.error('Erreur désinscription', e)
   }
 }
 </script>
