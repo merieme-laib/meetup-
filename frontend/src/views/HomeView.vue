@@ -326,13 +326,13 @@ function handleSearch() {
   router.push(q ? `/evenements?q=${encodeURIComponent(q)}` : '/evenements')
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
+// function formatDate(dateStr: string): string {
+//   return new Date(dateStr).toLocaleDateString('fr-FR', {
+//     day: 'numeric',
+//     month: 'short',
+//     year: 'numeric',
+//   })
+// }
 
 function setTargetBackground(event: MouseEvent, color: string) {
   const target = event.currentTarget as HTMLElement | null
