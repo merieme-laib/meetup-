@@ -152,6 +152,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Trash2 } from 'lucide-vue-next'
+import api from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -177,46 +178,26 @@ const form = reactive({
 
 const errors = reactive<Record<string, string>>({})
 
-// Mock data — à remplacer par un appel API GET /api/events/:id
-const mockEvents: any[] = [
-  {
-    id: 1,
-    title: 'Vue.js Paris Meetup #42',
-    description: 'Soirée dédiée aux dernières nouveautés de Vue 3, Pinia et Nuxt 4.',
-    date: '2025-04-15T19:00',
-    location: '10 rue de la Paix',
-    city: 'Paris',
-    isOnline: false,
-    imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&q=80',
-    price: 0,
-    maxParticipants: 100,
-    category: 'Développement',
-    creatorId: 1,
-  },
-  {
-    id: 2,
-    title: 'Workshop Spring Boot & Docker',
-    description: 'Apprenez à conteneuriser une application Spring Boot avec Docker Compose.',
-    date: '2025-04-20T14:00',
-    location: 'Campus Digital',
-    city: 'Lyon',
-    isOnline: false,
-    imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&q=80',
-    price: 15,
-    maxParticipants: 30,
-    category: 'Technologie',
-    creatorId: 2,
-  },
-]
-
-onMounted(() => {
-  const id = Number(route.params.id)
-  const event = mockEvents.find(e => e.id === id)
-  if (event) {
-    Object.assign(form, event)
+onMounted(async () => {
+  try {
+    const response = await api.get(`/events/${route.params.id}`)
+    const event = response.data
+    form.title = event.title
+    form.description = event.description
+    form.category = event.category
+    form.imageUrl = event.imageUrl || ''
+    form.date = event.date ? event.date.substring(0, 16) : ''
+    form.isOnline = event.online || event.isOnline || false
+    form.city = event.city || ''
+    form.location = event.location || ''
+    form.price = event.price || 0
+    form.maxParticipants = event.maxParticipants || undefined
     found.value = true
+  } catch {
+    found.value = false
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 })
 
 function inputClass(field: string) {
@@ -241,8 +222,18 @@ async function handleSubmit() {
   if (!validate()) return
   saving.value = true
   try {
-    // TODO: appel API PUT /api/events/:id
-    await new Promise(r => setTimeout(r, 800))
+    await api.put(`/events/${route.params.id}`, {
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      imageUrl: form.imageUrl,
+      date: form.date + ':00',
+      isOnline: form.isOnline,
+      city: form.isOnline ? 'En ligne' : form.city,
+      location: form.isOnline ? 'En ligne' : form.location,
+      price: form.price,
+      maxParticipants: form.maxParticipants || null,
+    })
     router.push(`/evenements/${route.params.id}`)
   } catch {
     errors.title = 'Une erreur est survenue'
@@ -253,7 +244,11 @@ async function handleSubmit() {
 
 async function handleDelete() {
   if (!confirm('Supprimer cet évènement ? Cette action est irréversible.')) return
-  // TODO: appel API DELETE /api/events/:id
-  router.push('/evenements')
+  try {
+    await api.delete(`/events/${route.params.id}`)
+    router.push('/evenements')
+  } catch {
+    alert('Une erreur est survenue lors de la suppression.')
+  }
 }
 </script>
