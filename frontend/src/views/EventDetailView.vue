@@ -157,20 +157,20 @@ const loadingLike = ref(false)
 
 const eventId = route.params.id
 
-async function fetchEventDetails() {
-  try {
-    const response = await api.get(`/events/${eventId}`)
-    event.value = response.data
-  } catch (e: any) {
-    if (e.response && e.response.status === 404) {
-      error.value = "Cet évènement n'existe pas ou a été supprimé."
-    } else {
-      error.value = "Erreur lors de la récupération de l'évènement."
-    }
-  } finally {
-    isLoading.value = false
-  }
-}
+// async function fetchEventDetails() {
+//   try {
+//     const response = await api.get(`/events/${eventId}`)
+//     event.value = response.data
+//   } catch (e: any) {
+//     if (e.response && e.response.status === 404) {
+//       error.value = "Cet évènement n'existe pas ou a été supprimé."
+//     } else {
+//       error.value = "Erreur lors de la récupération de l'évènement."
+//     }
+//   } finally {
+//     isLoading.value = false
+//   }
+// }
 
 async function handleRegister() {
   if (!authStore.isLoggedIn) {
