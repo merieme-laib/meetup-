@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.e11even.backend.dto.EventRequest;
 import com.e11even.backend.models.Event;
 import com.e11even.backend.models.Like;
 import com.e11even.backend.models.Registration;
@@ -23,6 +24,9 @@ import com.e11even.backend.repositories.LikeRepository;
 import com.e11even.backend.repositories.RegistrationRepository;
 import com.e11even.backend.repositories.UserRepository;
 import com.e11even.backend.security.JwtUtils;
+
+// 👇 Le fameux import pour nettoyer Swagger 👇
+import io.swagger.v3.oas.annotations.Parameter;
 
 @RestController
 @RequestMapping("/api/events")
@@ -43,7 +47,6 @@ public class EventController {
     @Autowired
     private UserRepository userRepository;
 
-    // Récupère l'ID de l'utilisateur connecté depuis le token JWT
     private Long getCurrentUserId(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
         String email = jwtUtils.getEmailFromJwtToken(token);
@@ -52,23 +55,19 @@ public class EventController {
                 .getId();
     }
 
-
     private void enrichEvent(Event event, Long userId) {
-        // Compteurs depuis les tables
         event.setParticipantsCount((int) registrationRepository.countByEventId(event.getId()));
         event.setLikesCount((int) likeRepository.countByEventId(event.getId()));
-        // État utilisateur
         if (userId != null) {
             event.setIsRegistered(registrationRepository.existsByUserIdAndEventId(userId, event.getId()));
             event.setIsLiked(likeRepository.existsByUserIdAndEventId(userId, event.getId()));
         }
     }
 
-    // 1. LISTE
-    // GET /api/events
+    // 1. LISTE (Hybride : public ou connecté)
     @GetMapping
     public List<Event> getAllEvents(
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authHeader) {
         List<Event> events = eventRepository.findAll();
         Long userId = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -79,12 +78,11 @@ public class EventController {
         return events;
     }
 
-    // 2. DÉTAIL
-    // GET /api/events/:id
+    // 2. DÉTAIL (Hybride)
     @GetMapping("/{id}")
     public ResponseEntity<Event> getEventById(
             @PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authHeader) {
         Long userId = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try { userId = getCurrentUserId(authHeader); } catch (Exception ignored) {}
@@ -96,50 +94,86 @@ public class EventController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 3. CRÉER
+    // 3. CRÉER (Sécurisé avec DTO)
     @PostMapping
     public ResponseEntity<Event> createEvent(
-            @RequestBody Event event,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestBody EventRequest request,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        
         Long userId = getCurrentUserId(authHeader);
+        
+        // On transfère les infos du DTO vers un vrai objet Event
+        Event event = new Event();
+        event.setTitle(request.getTitle());
+        event.setDescription(request.getDescription());
+        event.setDate(request.getDate());
+        event.setLocation(request.getLocation());
+        event.setCity(request.getCity());
+        event.setOnline(request.isOnline());
+        event.setImageUrl(request.getImageUrl());
+        event.setPrice(request.getPrice());
+        event.setMaxParticipants(request.getMaxParticipants());
+        event.setCategory(request.getCategory());
+        
+        // Sécurité : on force le créateur à être l'utilisateur connecté
         event.setCreatorId(userId);
+        
         return ResponseEntity.status(201).body(eventRepository.save(event));
     }
 
-    // 4. MODIFIER
+    // 4. MODIFIER (Sécurisé avec DTO)
     @PutMapping("/{id}")
     public ResponseEntity<Event> updateEvent(
             @PathVariable Long id,
-            @RequestBody Event updatedEvent,
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestBody EventRequest request,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        
+        Long currentUserId = getCurrentUserId(authHeader);
+
         return eventRepository.findById(id).map(event -> {
-            event.setTitle(updatedEvent.getTitle());
-            event.setDescription(updatedEvent.getDescription());
-            event.setDate(updatedEvent.getDate());
-            event.setLocation(updatedEvent.getLocation());
-            event.setCity(updatedEvent.getCity());
-            event.setOnline(updatedEvent.isOnline());
-            event.setImageUrl(updatedEvent.getImageUrl());
-            event.setPrice(updatedEvent.getPrice());
-            event.setMaxParticipants(updatedEvent.getMaxParticipants());
-            event.setCategory(updatedEvent.getCategory());
+            // Sécurité : est-ce que c'est bien SON évènement ?
+            if (!event.getCreatorId().equals(currentUserId)) {
+                return ResponseEntity.status(403).<Event>build();
+            }
+
+            event.setTitle(request.getTitle());
+            event.setDescription(request.getDescription());
+            event.setDate(request.getDate());
+            event.setLocation(request.getLocation());
+            event.setCity(request.getCity());
+            event.setOnline(request.isOnline());
+            event.setImageUrl(request.getImageUrl());
+            event.setPrice(request.getPrice());
+            event.setMaxParticipants(request.getMaxParticipants());
+            event.setCategory(request.getCategory());
+            
             return ResponseEntity.ok(eventRepository.save(event));
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // 5. SUPPRIMER
+    // 5. SUPPRIMER (Sécurisé contre les Hackers)
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
-        if (!eventRepository.existsById(id)) return ResponseEntity.notFound().build();
-        eventRepository.deleteById(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deleteEvent(
+            @PathVariable Long id,
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
+        
+        Long currentUserId = getCurrentUserId(authHeader);
+
+        return eventRepository.findById(id).map(event -> {
+            // Sécurité : est-ce que c'est bien SON évènement ?
+            if (!event.getCreatorId().equals(currentUserId)) {
+                return ResponseEntity.status(403).<Void>build();
+            }
+            eventRepository.deleteById(id);
+            return ResponseEntity.noContent().<Void>build();
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     // 6. S'INSCRIRE
     @PostMapping("/{id}/register")
     public ResponseEntity<?> register(
             @PathVariable Long id,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         Long userId = getCurrentUserId(authHeader);
         if (!eventRepository.existsById(id)) return ResponseEntity.notFound().build();
         if (registrationRepository.existsByUserIdAndEventId(userId, id)) {
@@ -156,7 +190,7 @@ public class EventController {
     @DeleteMapping("/{id}/register")
     public ResponseEntity<?> unregister(
             @PathVariable Long id,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         Long userId = getCurrentUserId(authHeader);
         registrationRepository.findByUserIdAndEventId(userId, id)
                 .ifPresent(registrationRepository::delete);
@@ -170,7 +204,7 @@ public class EventController {
     @PostMapping("/{id}/like")
     public ResponseEntity<?> like(
             @PathVariable Long id,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         Long userId = getCurrentUserId(authHeader);
         if (!likeRepository.existsByUserIdAndEventId(userId, id)) {
             likeRepository.save(new Like(userId, id));
@@ -185,7 +219,7 @@ public class EventController {
     @DeleteMapping("/{id}/like")
     public ResponseEntity<?> unlike(
             @PathVariable Long id,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         Long userId = getCurrentUserId(authHeader);
         likeRepository.findByUserIdAndEventId(userId, id)
                 .ifPresent(likeRepository::delete);

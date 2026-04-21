@@ -1,6 +1,7 @@
 package com.e11even.backend.controllers;
 
 import com.e11even.backend.dto.LoginRequest;
+import com.e11even.backend.dto.RegisterRequest;
 import com.e11even.backend.models.User;
 import com.e11even.backend.security.JwtUtils;
 import com.e11even.backend.services.AuthService;
@@ -23,8 +24,14 @@ public class AuthController {
     private JwtUtils jwtUtils;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
+            User user = new User();
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setEmail(request.getEmail());
+            user.setPassword(request.getPassword());
+
             User newUser = authService.register(user);
             String token = jwtUtils.generateJwtToken(newUser.getEmail());
 

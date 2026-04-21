@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.e11even.backend.dto.UpdateProfileRequest;
+import com.e11even.backend.dto.UserProfileResponse;
 import com.e11even.backend.models.Event;
 import com.e11even.backend.models.Like;
 import com.e11even.backend.models.Registration;
@@ -21,6 +23,8 @@ import com.e11even.backend.repositories.RegistrationRepository;
 import com.e11even.backend.repositories.UserRepository;
 import com.e11even.backend.security.JwtUtils;
 import com.e11even.backend.services.UserService;
+
+import io.swagger.v3.oas.annotations.Parameter;
 
 @RestController
 @RequestMapping("/api/users")
@@ -51,28 +55,33 @@ public class UserController {
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
     }
 
-    // GET /api/users/me
     @GetMapping("/me")
-    public ResponseEntity<User> getMe(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<UserProfileResponse> getMe(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         User user = getCurrentUser(authHeader);
-        return ResponseEntity.ok(user);
+        UserProfileResponse safeProfile = new UserProfileResponse(user);
+        return ResponseEntity.ok(safeProfile);
     }
 
-    // PUT /api/users/me
     @PutMapping("/me")
-    public ResponseEntity<User> updateMe(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody User updated
-    ) {
+    public ResponseEntity<UserProfileResponse> updateMe(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader,
+            @RequestBody UpdateProfileRequest request) {
         User user = getCurrentUser(authHeader);
-        User saved = userService.update(user.getId(), updated);
-        return ResponseEntity.ok(saved);
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setBio(request.getBio());
+        user.setAvatarUrl(request.getAvatarUrl());
+
+        User saved = userService.update(user.getId(), user);
+        UserProfileResponse safeProfile = new UserProfileResponse(saved);
+        return ResponseEntity.ok(safeProfile);
     }
 
-
-    // GET /api/users/me/registrations
     @GetMapping("/me/registrations")
-    public ResponseEntity<?> getMyRegistrations(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<List<Event>> getMyRegistrations(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         User user = getCurrentUser(authHeader);
         List<Registration> registrations = registrationRepository.findByUserId(user.getId());
         List<Long> eventIds = registrations.stream()
@@ -82,9 +91,9 @@ public class UserController {
         return ResponseEntity.ok(events);
     }
 
-    // GET /api/users/me/likes
     @GetMapping("/me/likes")
-    public ResponseEntity<?> getMyLikes(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<List<Event>> getMyLikes(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         User user = getCurrentUser(authHeader);
         List<Like> likes = likeRepository.findByUserId(user.getId());
         List<Long> eventIds = likes.stream()
