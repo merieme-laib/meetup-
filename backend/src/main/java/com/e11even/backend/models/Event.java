@@ -23,7 +23,6 @@ public class Event {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // Spring Boot transformera automatiquement la date String du Front en LocalDateTime
     private LocalDateTime date;
 
     private String location;
@@ -36,7 +35,6 @@ public class Event {
     private Integer maxParticipants;
     private String category;
 
-    // Pour l'instant, on stocke juste l'ID du créateur pour simplifier
     private Long creatorId;
 
     @Column(name = "participants_count", columnDefinition = "integer default 0")
@@ -45,22 +43,16 @@ public class Event {
     @Column(name = "likes_count", columnDefinition = "integer default 0")
     private int likesCount = 0;
 
-    // @Transient = "Ne crée pas de colonne dans la BDD pour ça, c'est juste pour le Front"
     @Transient
     private Boolean isRegistered;
 
     @Transient
     private Boolean isLiked;
 
-    // ==========================================
-    // CONSTRUCTEURS
-    // ==========================================
+   
     public Event() {}
 
-    // ==========================================
-    // GETTERS ET SETTERS
-    // (Génère-les tous ici avec ton IDE : Clic droit > Generate > Getters and Setters)
-    // ==========================================
+   
     
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

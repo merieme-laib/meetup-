@@ -44,7 +44,7 @@ public class AuthController {
             
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Erreur lors de l'inscription : " + e.getMessage()));
+                    .body(Map.of("error", "Inscription impossible. Cet email est peut-être déjà utilisé."));
         }
     }
 

@@ -38,10 +38,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
                 
-                // 👇 L'AJOUT POUR SWAGGER EST JUSTE ICI 👇
+               
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 
-                // LES DÉBLOQUEURS DE FAUX 403 
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 

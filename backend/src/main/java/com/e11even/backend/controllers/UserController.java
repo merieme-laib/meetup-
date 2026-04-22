@@ -1,9 +1,11 @@
 package com.e11even.backend.controllers;
 
 import java.util.List;
+import java.util.Map; 
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler; 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -101,5 +103,10 @@ public class UserController {
                 .collect(java.util.stream.Collectors.toList());
         List<Event> events = eventRepository.findAllById(eventIds);
         return ResponseEntity.ok(events);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
+        return ResponseEntity.status(404).body(Map.of("error", ex.getMessage()));
     }
 }
