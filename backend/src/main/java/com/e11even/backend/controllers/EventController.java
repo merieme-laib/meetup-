@@ -1,5 +1,6 @@
 package com.e11even.backend.controllers;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +61,16 @@ public class EventController {
             event.setIsRegistered(registrationRepository.existsByUserIdAndEventId(userId, event.getId()));
             event.setIsLiked(likeRepository.existsByUserIdAndEventId(userId, event.getId()));
         }
+    }
+
+    private boolean isPastEvent(Event event) {
+        if (event.getDate() == null) {
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime normalizedEventDate = event.getDate().withYear(now.getYear());
+        return normalizedEventDate.isBefore(now);
     }
 
     // 1. LISTE DES ÉVÈNEMENTS 
@@ -190,9 +201,15 @@ public class EventController {
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         
         Long userId = getCurrentUserId(authHeader);
-        
-        if (!eventRepository.existsById(id)) {
+
+        Optional<Event> eventOpt = eventRepository.findById(id);
+        if (eventOpt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("error", "Cet évènement n'existe pas."));
+        }
+
+        Event event = eventOpt.get();
+        if (isPastEvent(event)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Impossible de s'inscrire à un évènement déjà passé."));
         }
         
         if (registrationRepository.existsByUserIdAndEventId(userId, id)) {

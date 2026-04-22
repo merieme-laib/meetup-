@@ -120,6 +120,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import api from '@/services/api'
 import EventCard from '@/components/event/EventCard.vue'
 import type { Event } from '@/types/event'
+import { isEventOnline, isUpcomingEventDate, parseEventDate } from '@/utils/eventDate'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -206,6 +207,8 @@ const filteredEvents = computed(() => {
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
 
   return events.value.filter((event) => {
+    if (!isUpcomingEventDate(event.date)) return false
+
     const matchesCategory = !normalizedCategory
       || normalizeText(event.category).includes(normalizedCategory)
     const matchesFormat = !selectedFormat.value
@@ -247,10 +250,6 @@ function normalizeText(value: string | null | undefined) {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
-}
-
-function isEventOnline(event: Event & { online?: boolean }) {
-  return Boolean(event.isOnline || event.online)
 }
 
 onMounted(() => {
@@ -301,9 +300,9 @@ function matchesPeriodFilter(
   endOfWeek: Date,
   endOfMonth: Date
 ) {
-  const eventDate = new Date(eventDateRaw)
+  const eventDate = parseEventDate(eventDateRaw)
 
-  if (Number.isNaN(eventDate.getTime())) return false
+  if (!eventDate) return false
   if (!period) return true
   if (eventDate < startOfCurrentDay) return false
   if (period === 'week') return eventDate <= endOfWeek

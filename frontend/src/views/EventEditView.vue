@@ -228,7 +228,7 @@ async function handleSubmit() {
       category: form.category,
       imageUrl: form.imageUrl,
       date: form.date + ':00',
-      isOnline: form.isOnline,
+      online: form.isOnline,
       city: form.isOnline ? 'En ligne' : form.city,
       location: form.isOnline ? 'En ligne' : form.location,
       price: form.price,

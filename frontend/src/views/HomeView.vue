@@ -172,7 +172,7 @@
         
         <!-- Cards grille -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <EventCard v-for="event in events" :key="event.id" :event="event" />
+          <EventCard v-for="event in visibleEvents.slice(0, 3)" :key="event.id" :event="event" />
         </div>
 
         
@@ -235,7 +235,7 @@
 //   TrendingUp, Plus, ChevronRight
 // } from 'lucide-vue-next'
 
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Search, ArrowRight, MapPin, Users, CalendarDays,
@@ -243,6 +243,7 @@ import {
 } from 'lucide-vue-next'
 import api from '@/services/api'
 import EventCard from '@/components/event/EventCard.vue'
+import { isUpcomingEventDate } from '@/utils/eventDate'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -312,10 +313,14 @@ const stats = [
 
 const events = ref<any[]>([])
 
+const visibleEvents = computed(() =>
+  events.value.filter((event) => isUpcomingEventDate(event.date))
+)
+
 onMounted(async () => {
   try {
     const response = await api.get('/events')
-    events.value = response.data.slice(0, 3) // On affiche que 3 sur l'accueil
+    events.value = response.data
   } catch (e) {
     console.error('Erreur chargement événements', e)
   }
