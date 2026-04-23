@@ -1,18 +1,18 @@
 package com.e11even.backend.security;
 
-import org.springframework.beans.factory.annotation.Autowired; // <-- NOUVEAU
+import java.util.Arrays; // <-- NOUVEAU
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; // <-- NOUVEAU
+import org.springframework.security.web.SecurityFilterChain; // <-- NOUVEAU
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -56,11 +56,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // On autorise explicitement ton frontend local
+        // On autorise explicitement le frontend sur la VM
         configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5173",
-            "http://192.168.75.120:5173", // L'URL de ton site sur la VM (avec port)
-            "http://192.168.75.120"       // L'URL de ton site sur la VM (sans port)
+            "http://192.168.75.120:5173", // L'URL du site sur la VM (avec port)
+            "http://192.168.75.120"       // L'URL du site sur la VM (sans port)
         ));
         
         // On autorise les méthodes (POST pour le login/register, GET, etc.)
