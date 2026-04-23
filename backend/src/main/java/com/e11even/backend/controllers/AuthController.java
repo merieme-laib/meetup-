@@ -46,6 +46,13 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User loginRequest) {
+        if (loginRequest == null
+                || loginRequest.getEmail() == null || loginRequest.getEmail().isBlank()
+                || loginRequest.getPassword() == null || loginRequest.getPassword().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Email et mot de passe sont obligatoires"));
+        }
+
         try {
             // 1. Le service vérifie l'email et le mot de passe
             User user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());

@@ -1,8 +1,5 @@
 package com.e11even.backend.controllers;
 
-import com.e11even.backend.dto.LoginRequest;
-import com.e11even.backend.dto.RegisterRequest;
-import com.e11even.backend.dto.UserProfileResponse;
 import com.e11even.backend.models.User;
 import com.e11even.backend.security.JwtUtils;
 import com.e11even.backend.services.AuthService;
@@ -34,7 +31,7 @@ class AuthControllerTest {
 
     @Test
     void register_shouldReturnTokenAndUser_whenSuccess() {
-        RegisterRequest input = new RegisterRequest();
+        User input = new User();
         input.setFirstName("John");
         input.setLastName("Doe");
         input.setEmail("john@example.com");
@@ -43,7 +40,7 @@ class AuthControllerTest {
         User saved = new User();
         saved.setEmail("john@example.com");
 
-        when(authService.register(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(saved);
+        when(authService.register(input)).thenReturn(saved);
         when(jwtUtils.generateJwtToken("john@example.com")).thenReturn("jwt-token");
 
         ResponseEntity<?> response = authController.register(input);
@@ -51,16 +48,16 @@ class AuthControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
         assertEquals("jwt-token", body.get("token"));
-        UserProfileResponse userProfile = assertInstanceOf(UserProfileResponse.class, body.get("user"));
-        assertEquals("john@example.com", userProfile.getEmail());
+        User user = assertInstanceOf(User.class, body.get("user"));
+        assertEquals("john@example.com", user.getEmail());
     }
 
     @Test
     void register_shouldReturnBadRequest_whenServiceThrows() {
-        RegisterRequest input = new RegisterRequest();
+        User input = new User();
         input.setEmail("john@example.com");
         input.setPassword("secret");
-        when(authService.register(org.mockito.ArgumentMatchers.any(User.class))).thenThrow(new RuntimeException("already exists"));
+        when(authService.register(input)).thenThrow(new RuntimeException("already exists"));
 
         ResponseEntity<?> response = authController.register(input);
 
@@ -69,7 +66,7 @@ class AuthControllerTest {
 
     @Test
     void login_shouldReturnTokenAndUser_whenSuccess() {
-        LoginRequest loginRequest = new LoginRequest();
+        User loginRequest = new User();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
@@ -84,13 +81,13 @@ class AuthControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
         assertEquals("jwt-token", body.get("token"));
-        UserProfileResponse userProfile = assertInstanceOf(UserProfileResponse.class, body.get("user"));
-        assertEquals("john@example.com", userProfile.getEmail());
+        User user = assertInstanceOf(User.class, body.get("user"));
+        assertEquals("john@example.com", user.getEmail());
     }
 
     @Test
     void login_shouldReturnUnauthorized_whenServiceReturnsNull() {
-        LoginRequest loginRequest = new LoginRequest();
+        User loginRequest = new User();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
@@ -103,7 +100,7 @@ class AuthControllerTest {
 
     @Test
     void login_shouldReturnUnauthorized_whenServiceThrows() {
-        LoginRequest loginRequest = new LoginRequest();
+        User loginRequest = new User();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
@@ -112,5 +109,18 @@ class AuthControllerTest {
         ResponseEntity<?> response = authController.login(loginRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void login_shouldReturnBadRequest_whenFieldsAreMissing() {
+        User loginRequest = new User();
+        loginRequest.setEmail("john@example.com");
+        loginRequest.setPassword(" ");
+
+        ResponseEntity<?> response = authController.login(loginRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals("Email et mot de passe sont obligatoires", body.get("error"));
     }
 }
