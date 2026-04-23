@@ -1,5 +1,8 @@
 package com.e11even.backend.controllers;
 
+import com.e11even.backend.dto.LoginRequest;
+import com.e11even.backend.dto.RegisterRequest;
+import com.e11even.backend.dto.UserProfileResponse;
 import com.e11even.backend.models.User;
 import com.e11even.backend.security.JwtUtils;
 import com.e11even.backend.services.AuthService;
@@ -31,13 +34,16 @@ class AuthControllerTest {
 
     @Test
     void register_shouldReturnTokenAndUser_whenSuccess() {
-        User input = new User();
+        RegisterRequest input = new RegisterRequest();
+        input.setFirstName("John");
+        input.setLastName("Doe");
         input.setEmail("john@example.com");
+        input.setPassword("secret");
 
         User saved = new User();
         saved.setEmail("john@example.com");
 
-        when(authService.register(input)).thenReturn(saved);
+        when(authService.register(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(saved);
         when(jwtUtils.generateJwtToken("john@example.com")).thenReturn("jwt-token");
 
         ResponseEntity<?> response = authController.register(input);
@@ -45,13 +51,16 @@ class AuthControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
         assertEquals("jwt-token", body.get("token"));
-        assertEquals(saved, body.get("user"));
+        UserProfileResponse userProfile = assertInstanceOf(UserProfileResponse.class, body.get("user"));
+        assertEquals("john@example.com", userProfile.getEmail());
     }
 
     @Test
     void register_shouldReturnBadRequest_whenServiceThrows() {
-        User input = new User();
-        when(authService.register(input)).thenThrow(new RuntimeException("already exists"));
+        RegisterRequest input = new RegisterRequest();
+        input.setEmail("john@example.com");
+        input.setPassword("secret");
+        when(authService.register(org.mockito.ArgumentMatchers.any(User.class))).thenThrow(new RuntimeException("already exists"));
 
         ResponseEntity<?> response = authController.register(input);
 
@@ -60,7 +69,7 @@ class AuthControllerTest {
 
     @Test
     void login_shouldReturnTokenAndUser_whenSuccess() {
-        User loginRequest = new User();
+        LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
@@ -75,12 +84,13 @@ class AuthControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
         assertEquals("jwt-token", body.get("token"));
-        assertEquals(found, body.get("user"));
+        UserProfileResponse userProfile = assertInstanceOf(UserProfileResponse.class, body.get("user"));
+        assertEquals("john@example.com", userProfile.getEmail());
     }
 
     @Test
     void login_shouldReturnUnauthorized_whenServiceReturnsNull() {
-        User loginRequest = new User();
+        LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
@@ -93,7 +103,7 @@ class AuthControllerTest {
 
     @Test
     void login_shouldReturnUnauthorized_whenServiceThrows() {
-        User loginRequest = new User();
+        LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
