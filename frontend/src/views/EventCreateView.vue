@@ -391,7 +391,7 @@ async function handleSubmit() {
       date: dateTime,
       location: form.isOnline ? 'En ligne' : form.location,
       city: form.isOnline ? 'En ligne' : form.city,
-      isOnline: form.isOnline,
+      online: form.isOnline,
       imageUrl: form.imageUrl,
       price: form.price,
       maxParticipants: form.maxParticipants || null,

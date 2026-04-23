@@ -244,8 +244,8 @@ async function handleSubmit() {
     success.value = true
     setTimeout(() => router.push((route.query.redirect as string) || '/'), 1000)
   } catch (err: any) {
-    errors.email = err?.response?.data?.message || 'Une erreur est survenue'
-  } finally {
+  errors.email = err?.response?.data?.error || 'Une erreur est survenue'
+} finally {
     loading.value = false
   }
 }

@@ -106,14 +106,14 @@
             <!-- Bouton inscription -->
             <button 
               @click="handleRegister"
-              :disabled="loadingRegister"
+              :disabled="loadingRegister || isPastEvent"
               class="w-full py-3.5 px-4 font-bold rounded-xl shadow-sm transition-all"
               :style="{
-                backgroundColor: isRegistered ? '#E0ECD9' : '#7A9E6E',
-                color: isRegistered ? '#3D5C38' : 'white',
+                backgroundColor: isRegistered ? '#E0ECD9' : isPastEvent ? '#f3f4f6' : '#7A9E6E',
+                color: isRegistered ? '#3D5C38' : isPastEvent ? '#9ca3af' : 'white',
                 opacity: loadingRegister ? 0.7 : 1
               }">
-              {{ loadingRegister ? 'En cours...' : isRegistered ? '✓ Inscrit — Se désinscrire' : "Participer à l'évènement" }}
+              {{ loadingRegister ? 'En cours...' : isRegistered ? '✓ Inscrit — Se désinscrire' : isPastEvent ? "Évènement terminé" : "Participer à l'évènement" }}
             </button>
 
             <!-- Bouton like -->
@@ -149,11 +149,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import api from '@/services/api'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { isPastEventDate } from '@/utils/eventDate'
 
 const route = useRoute()
 const router = useRouter()
@@ -170,6 +171,7 @@ const loadingLike = ref(false)
 const eventId = route.params.id
 
 const showUnregisterModal = ref(false)
+const isPastEvent = computed(() => isPastEventDate(event.value?.date))
 
 // async function fetchEventDetails() {
 //   try {
@@ -191,6 +193,7 @@ async function handleRegister() {
     router.push({ path: '/connexion', query: { redirect: route.fullPath } })
     return
   }
+  if (isPastEvent.value) return
   if (isRegistered.value) {
     showUnregisterModal.value = true
     return
