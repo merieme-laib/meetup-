@@ -1,0 +1,106 @@
+package com.e11even.backend.controllers;
+
+import com.e11even.backend.models.User;
+import com.e11even.backend.security.JwtUtils;
+import com.e11even.backend.services.AuthService;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class AuthControllerTest {
+
+    @Mock
+    private AuthService authService;
+
+    @Mock
+    private JwtUtils jwtUtils;
+
+    @InjectMocks
+    private AuthController authController;
+
+    @Test
+    void register_shouldReturnTokenAndUser_whenSuccess() {
+        User input = new User();
+        input.setEmail("john@example.com");
+
+        User saved = new User();
+        saved.setEmail("john@example.com");
+
+        when(authService.register(input)).thenReturn(saved);
+        when(jwtUtils.generateJwtToken("john@example.com")).thenReturn("jwt-token");
+
+        ResponseEntity<?> response = authController.register(input);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals("jwt-token", body.get("token"));
+        assertEquals(saved, body.get("user"));
+    }
+
+    @Test
+    void register_shouldReturnBadRequest_whenServiceThrows() {
+        User input = new User();
+        when(authService.register(input)).thenThrow(new RuntimeException("already exists"));
+
+        ResponseEntity<?> response = authController.register(input);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void login_shouldReturnTokenAndUser_whenSuccess() {
+        User loginRequest = new User();
+        loginRequest.setEmail("john@example.com");
+        loginRequest.setPassword("secret");
+
+        User found = new User();
+        found.setEmail("john@example.com");
+
+        when(authService.login("john@example.com", "secret")).thenReturn(found);
+        when(jwtUtils.generateJwtToken("john@example.com")).thenReturn("jwt-token");
+
+        ResponseEntity<?> response = authController.login(loginRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals("jwt-token", body.get("token"));
+        assertEquals(found, body.get("user"));
+    }
+
+    @Test
+    void login_shouldReturnUnauthorized_whenServiceReturnsNull() {
+        User loginRequest = new User();
+        loginRequest.setEmail("john@example.com");
+        loginRequest.setPassword("secret");
+
+        when(authService.login("john@example.com", "secret")).thenReturn(null);
+
+        ResponseEntity<?> response = authController.login(loginRequest);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
+    void login_shouldReturnUnauthorized_whenServiceThrows() {
+        User loginRequest = new User();
+        loginRequest.setEmail("john@example.com");
+        loginRequest.setPassword("secret");
+
+        when(authService.login("john@example.com", "secret")).thenThrow(new RuntimeException("bad credentials"));
+
+        ResponseEntity<?> response = authController.login(loginRequest);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+}

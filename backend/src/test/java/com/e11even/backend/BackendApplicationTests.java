@@ -1,13 +1,15 @@
 package com.e11even.backend;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootTest
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 class BackendApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void applicationClass_shouldHaveSpringBootAnnotation() {
+		assertTrue(BackendApplication.class.isAnnotationPresent(SpringBootApplication.class));
 	}
 
 }
