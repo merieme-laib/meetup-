@@ -149,9 +149,13 @@
                   <p class="text-sm text-gray-800 font-semibold">{{ info.value }}</p>
                 </div>
               </div>
-              <div v-if="authStore.user?.bio" class="pt-2">
+              <!-- <div v-if="authStore.user?.bio" class="pt-2">
                 <p class="text-xs text-gray-400 mb-1 font-medium">Bio</p>
                 <p class="text-sm text-gray-600">{{ authStore.user.bio }}</p>
+              </div> -->
+              <div class="pt-2">
+                <p class="text-xs text-gray-400 mb-1 font-medium">Bio</p>
+                <p class="text-sm text-gray-600">{{ authStore.user?.bio || 'Aucune bio renseignée' }}</p>
               </div>
             </div>
           </div>
@@ -244,6 +248,8 @@
 
           <!-- Paramètres -->
           <div v-if="activeTab === 'settings'" class="space-y-4">
+
+            <!-- Notifications -->
             <div class="bg-white rounded-xl border border-gray-200 p-6">
               <h2 class="mb-4 font-extrabold text-lg">Notifications</h2>
               <div v-for="pref in notifPrefs" :key="pref" class="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
@@ -253,6 +259,61 @@
                 </div>
               </div>
             </div>
+
+            <!-- Changer l'email -->
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 class="mb-4 font-extrabold text-lg">Changer l'adresse e-mail</h2>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm text-gray-600 mb-1.5 font-semibold">Nouvel e-mail</label>
+                  <input v-model="emailForm.newEmail" type="email" placeholder="nouveau@email.com" autocomplete="off"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 bg-gray-50 focus:bg-white transition-all" />
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-600 mb-1.5 font-semibold">Confirmer avec votre mot de passe</label>
+                  <input v-model="emailForm.password" type="password" placeholder="••••••••" autocomplete="new-password"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 bg-gray-50 focus:bg-white transition-all" />
+                </div>
+                <p v-if="emailError" class="text-xs text-red-500">{{ emailError }}</p>
+                <p v-if="emailSuccess" class="text-xs" style="color: #3D5C38">✓ Email modifié avec succès !</p>
+                <button @click="handleUpdateEmail"
+                  class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm text-white font-bold"
+                  style="background-color: #7A9E6E">
+                  Mettre à jour l'e-mail
+                </button>
+              </div>
+            </div>
+
+            <!-- Changer le mot de passe -->
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 class="mb-4 font-extrabold text-lg">Changer le mot de passe</h2>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm text-gray-600 mb-1.5 font-semibold">Mot de passe actuel</label>
+                  <input v-model="passwordForm.currentPassword" type="password" placeholder="••••••••" autocomplete="current-password"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 bg-gray-50 focus:bg-white transition-all" />
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-600 mb-1.5 font-semibold">Nouveau mot de passe</label>
+                  <input v-model="passwordForm.newPassword" type="password" placeholder="••••••••" autocomplete="new-password"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 bg-gray-50 focus:bg-white transition-all" />
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-600 mb-1.5 font-semibold">Confirmer le nouveau mot de passe</label>
+                  <input v-model="passwordForm.confirmPassword" type="password" placeholder="••••••••" autocomplete="new-password"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 bg-gray-50 focus:bg-white transition-all" />
+                </div>
+                <p v-if="passwordError" class="text-xs text-red-500">{{ passwordError }}</p>
+                <p v-if="passwordSuccess" class="text-xs" style="color: #3D5C38">✓ Mot de passe modifié avec succès !</p>
+                <button @click="handleUpdatePassword"
+                  class="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm text-white font-bold"
+                  style="background-color: #7A9E6E">
+                  Changer le mot de passe
+                </button>
+              </div>
+            </div>
+
+            <!-- Zone dangereuse -->
             <div class="bg-white rounded-xl border border-red-100 p-6">
               <h3 class="text-red-600 mb-2 font-bold">Zone dangereuse</h3>
               <p class="text-sm text-gray-500 mb-4">La suppression de votre compte est définitive et irréversible.</p>
@@ -286,7 +347,7 @@ const tabs = [
   { id: 'registrations', label: 'Inscriptions',    icon: CheckCircle },
   { id: 'liked',         label: 'Likes',           icon: Heart },
   { id: 'created',       label: 'Mes évènements',  icon: CalendarDays },
-  { id: 'settings',      label: 'Paramètres',      icon: Settings },
+  { id: 'settings',      label: 'Paramètres et sécurité',      icon: Settings },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']
@@ -310,7 +371,6 @@ const editForm = reactive({
 const editFields = [
   { key: 'firstName' as const, label: 'Prénom',  type: 'text',  placeholder: 'Jean' },
   { key: 'lastName'  as const, label: 'Nom',     type: 'text',  placeholder: 'Dupont' },
-  { key: 'email'     as const, label: 'E-mail',  type: 'email', placeholder: 'vous@email.com' },
 ]
 
 const notifPrefs = [
@@ -381,5 +441,65 @@ async function handleSave() {
 function handleLogout() {
   authStore.logout()
   router.push('/')
+}
+
+const emailForm = reactive({ newEmail: '', password: '' })
+const passwordForm = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
+const emailError = ref('')
+const emailSuccess = ref(false)
+const passwordError = ref('')
+const passwordSuccess = ref(false)
+
+async function handleUpdateEmail() {
+  emailError.value = ''
+  emailSuccess.value = false
+  if (!emailForm.newEmail || !emailForm.password) {
+    emailError.value = 'Tous les champs sont requis'
+    return
+  }
+  try {
+    const response = await api.put('/users/me/email', {
+      newEmail: emailForm.newEmail,
+      password: emailForm.password,
+    })
+    authStore.setAuth(response.data.user, response.data.token)
+    editForm.email = response.data.user.email
+    emailSuccess.value = true
+    emailForm.newEmail = ''
+    emailForm.password = ''
+    setTimeout(() => emailSuccess.value = false, 3000)
+  } catch (e: any) {
+    emailError.value = e.response?.data?.error || 'Une erreur est survenue'
+  }
+}
+
+async function handleUpdatePassword() {
+  passwordError.value = ''
+  passwordSuccess.value = false
+  if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    passwordError.value = 'Tous les champs sont requis'
+    return
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    passwordError.value = 'Les mots de passe ne correspondent pas'
+    return
+  }
+  if (passwordForm.newPassword.length < 6) {
+    passwordError.value = 'Le mot de passe doit faire au moins 6 caractères'
+    return
+  }
+  try {
+    await api.put('/users/me/password', {
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+    })
+    passwordSuccess.value = true
+    passwordForm.currentPassword = ''
+    passwordForm.newPassword = ''
+    passwordForm.confirmPassword = ''
+    setTimeout(() => passwordSuccess.value = false, 3000)
+  } catch (e: any) {
+    passwordError.value = e.response?.data?.error || 'Une erreur est survenue'
+  }
 }
 </script>

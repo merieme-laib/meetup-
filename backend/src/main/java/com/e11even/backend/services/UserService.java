@@ -26,4 +26,28 @@ public class UserService {
         if (updated.getAvatarUrl() != null) user.setAvatarUrl(updated.getAvatarUrl());
         return userRepository.save(user);
     }
+
+    public User updateEmail(Long id, String newEmail, String password) {
+    User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        if (!user.getPassword().equals(password)) {
+            throw new RuntimeException("Mot de passe incorrect");
+        }
+        if (userRepository.findByEmail(newEmail).isPresent()) {
+            throw new RuntimeException("Email déjà utilisé");
+        }
+        user.setEmail(newEmail);
+        return userRepository.save(user);
+    }
+
+    public User updatePassword(Long id, String currentPassword, String newPassword) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        if (!user.getPassword().equals(currentPassword)) {
+            throw new RuntimeException("Mot de passe actuel incorrect");
+        }
+        user.setPassword(newPassword);
+        return userRepository.save(user);
+    }
+
 }

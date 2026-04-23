@@ -93,4 +93,37 @@ public class UserController {
         List<Event> events = eventRepository.findAllById(eventIds);
         return ResponseEntity.ok(events);
     }
+
+    // PUT /api/users/me/email
+    @PutMapping("/me/email")
+    public ResponseEntity<?> updateEmail(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody java.util.Map<String, String> body) {
+        try {
+            User user = getCurrentUser(authHeader);
+            User saved = userService.updateEmail(user.getId(), body.get("newEmail"), body.get("password"));
+            String newToken = jwtUtils.generateJwtToken(saved.getEmail());
+            return ResponseEntity.ok(java.util.Map.of(
+                "user", saved,
+                "token", newToken
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    // PUT /api/users/me/password
+    @PutMapping("/me/password")
+    public ResponseEntity<?> updatePassword(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody java.util.Map<String, String> body) {
+        try {
+            User user = getCurrentUser(authHeader);
+            userService.updatePassword(user.getId(), body.get("currentPassword"), body.get("newPassword"));
+            return ResponseEntity.ok(java.util.Map.of("message", "Mot de passe modifié avec succès"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
 }
