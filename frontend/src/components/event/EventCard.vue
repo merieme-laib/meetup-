@@ -46,7 +46,7 @@
       </button>
 
       <!-- Badge en ligne -->
-      <div v-if="event.online || event.isOnline" class="absolute bottom-3 left-3">
+      <div v-if="isEventOnline(event)" class="absolute bottom-3 left-3">
         <span class="flex items-center gap-1 px-2 py-1 bg-white/95 text-gray-700 rounded-md text-xs shadow-sm font-semibold">
           <Wifi :size="11" style="color: #7A9E6E" />
           En ligne
@@ -87,7 +87,7 @@
       <div class="flex items-center gap-1.5 text-xs text-gray-500 mt-auto mb-3">
         <MapPin :size="12" class="text-gray-400 shrink-0" />
         <span class="truncate">
-          {{ (event.online || event.isOnline) ? 'Évènement en ligne' : `${event.location}, ${event.city}` }}
+          {{ isEventOnline(event) ? 'Évènement en ligne' : `${event.location}, ${event.city}` }}
         </span>
       </div>
 
@@ -109,15 +109,17 @@
         <button
           v-if="authStore.isLoggedIn"
           @click.prevent="handleRegister"
-          :disabled="isFull && !isRegistered"
+          :disabled="isPastEvent || (isFull && !isRegistered)"
           class="px-3 py-1.5 rounded-lg text-xs transition-all font-semibold"
           :style="isRegistered
             ? 'background-color: transparent; color: #4D6E47; border: 1px solid #A8C49E'
+            : isPastEvent
+            ? 'background-color: #f3f4f6; color: #9ca3af; cursor: not-allowed'
             : isFull
             ? 'background-color: #f3f4f6; color: #9ca3af; cursor: not-allowed'
             : 'background-color: #7A9E6E; color: white'"
         >
-          {{ isRegistered ? 'Inscrit ✓' : isFull ? 'Complet' : "S'inscrire" }}
+          {{ isRegistered ? 'Inscrit ✓' : isPastEvent ? 'Terminé' : isFull ? 'Complet' : "S'inscrire" }}
         </button>
 
         <RouterLink
@@ -139,6 +141,7 @@ import { Heart, MapPin, Users, Wifi } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth.store'
 import api from '@/services/api'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { isEventOnline, isPastEventDate } from '@/utils/eventDate'
 
 
 const props = defineProps<{
@@ -153,6 +156,8 @@ const showUnregisterModal = ref(false)
 const isFull = computed(() =>
 props.event.maxParticipants && props.event.participantsCount >= props.event.maxParticipants
 )
+
+const isPastEvent = computed(() => isPastEventDate(props.event.date))
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   'Développement': { bg: '#E0ECD9', text: '#3D5C38' },
@@ -206,6 +211,7 @@ async function handleLike() {
 
 async function handleRegister() {
   if (!authStore.isLoggedIn) return
+  if (isPastEvent.value) return
   if (isRegistered.value) {
     showUnregisterModal.value = true
     return

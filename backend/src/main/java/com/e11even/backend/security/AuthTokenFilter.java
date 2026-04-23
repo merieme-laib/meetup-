@@ -50,11 +50,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    // Petite fonction pour découper la phrase "Bearer eyJhbg..." et ne garder que le token
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7); // On enlève les 7 premiers caractères ("Bearer ")
+            return headerAuth.substring(7); 
         }
         return null;
     }

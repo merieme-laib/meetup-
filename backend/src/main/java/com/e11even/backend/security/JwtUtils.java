@@ -11,11 +11,10 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    // Clé secrète utilisée pour signer le token (elle doit faire au moins 32 caractères)
-    // En entreprise, on la cache dans le application.properties, mais pour le projet on la met ici.
+    
     private final String jwtSecret = "CeciEstUneCleSecreteTresLonguePourE11evenMeetup2026!*";
     
-    // Durée de validité du token : 1 jour (en millisecondes)
+    // Durée de validité du token : 1 jour 
     private final int jwtExpirationMs = 86400000;
 
     // Convertit la chaîne de caractères en vraie clé cryptographique
