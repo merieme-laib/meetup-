@@ -290,17 +290,21 @@
               <div class="space-y-3">
                 <div>
                   <label class="block text-sm text-gray-600 mb-1.5 font-semibold">Mot de passe actuel</label>
-                  <input v-model="passwordForm.currentPassword" type="password" placeholder="••••••••" autocomplete="current-password"
+                  <input v-model="passwordForm.currentPassword" type="password" placeholder="••••••••" 
+                    autocomplete="new-password" readonly
+                    @focus="($event.target as HTMLInputElement).removeAttribute('readonly')"
                     class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 bg-gray-50 focus:bg-white transition-all" />
                 </div>
                 <div>
                   <label class="block text-sm text-gray-600 mb-1.5 font-semibold">Nouveau mot de passe</label>
-                  <input v-model="passwordForm.newPassword" type="password" placeholder="••••••••" autocomplete="new-password"
+                  <input v-model="passwordForm.newPassword" type="password" placeholder="••••••••"
+                    autocomplete="new-password"
                     class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 bg-gray-50 focus:bg-white transition-all" />
                 </div>
                 <div>
                   <label class="block text-sm text-gray-600 mb-1.5 font-semibold">Confirmer le nouveau mot de passe</label>
-                  <input v-model="passwordForm.confirmPassword" type="password" placeholder="••••••••" autocomplete="new-password"
+                  <input v-model="passwordForm.confirmPassword" type="password" placeholder="••••••••"
+                    autocomplete="new-password"
                     class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-gray-900 bg-gray-50 focus:bg-white transition-all" />
                 </div>
                 <p v-if="passwordError" class="text-xs text-red-500">{{ passwordError }}</p>
