@@ -24,9 +24,11 @@ class SecurityConfigTest {
         assertTrue(CorsUtils.isPreFlightRequest(request));
 
         CorsConfiguration cors = source.getCorsConfiguration(request);
-        assertEquals(2, cors.getAllowedOrigins().size());
+        assertEquals(4, cors.getAllowedOrigins().size());
+        assertTrue(cors.getAllowedOrigins().contains("http://localhost:5173"));
         assertTrue(cors.getAllowedOrigins().contains("http://192.168.75.120:5173"));
         assertTrue(cors.getAllowedOrigins().contains("http://192.168.75.120"));
+        assertTrue(cors.getAllowedOrigins().contains("https://192.168.75.120"));
         assertTrue(cors.getAllowedMethods().contains("GET"));
         assertTrue(cors.getAllowedMethods().contains("POST"));
         assertEquals(1, cors.getAllowedHeaders().size());

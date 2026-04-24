@@ -55,8 +55,7 @@ sonarqube-check:
   script:
     - cd backend
     - mvn dependency:go-offline
-    - mvn clean package -DskipTests
-    - mvn sonar:sonar
+    - mvn clean verify sonar:sonar
   artifacts:
     paths:
       - backend/target/*.jar
@@ -93,7 +92,7 @@ deploy_backend:
         command -v java >/dev/null
         test -f /home/gitlabci/backend.jar
         fuser -k 8080/tcp || true
-        nohup java -jar /home/gitlabci/backend.jar > /home/gitlabci/backend.log 2>&1 < /dev/null &
+        nohup java -Dspring.datasource.password=$DB_PASSWORD -jar /home/gitlabci/backend.jar > /home/gitlabci/backend.log 2>&1 < /dev/null &
         sleep 3
         if ! pgrep -f \"/home/gitlabci/backend.jar\" >/dev/null; then
           echo \"Echec de demarrage backend, log: \"
