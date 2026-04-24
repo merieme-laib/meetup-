@@ -112,16 +112,16 @@ public class EventService {
     // --- Likes ---
 
     public Map<String, Object> like(Long eventId, Long userId) {
-        eventRepository.findById(eventId)
+        Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Évènement introuvable"));
 
-        if (!likeRepository.existsByUserIdAndEventId(userId, eventId)) {
-            likeRepository.save(new Like(userId, eventId));
+        if (!likeRepository.existsByUserIdAndEventId(userId, event.getId())) {
+            likeRepository.save(new Like(userId, event.getId()));
         }
 
         Map<String, Object> result = new HashMap<>();
         result.put("liked", true);
-        result.put("likesCount", likeRepository.countByEventId(eventId));
+        result.put("likesCount", likeRepository.countByEventId(event.getId()));
         return result;
     }
 
