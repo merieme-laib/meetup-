@@ -130,6 +130,16 @@ class EventServiceTest {
     }
 
     @Test
+    void update_shouldThrow_whenNotOwner() {
+        when(eventRepository.findById(3L)).thenReturn(Optional.of(event(3L, 2L, 10)));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> eventService.update(3L, event(3L, 2L, 10), 9L));
+
+        assertEquals("Non autorisé", ex.getMessage());
+    }
+
+    @Test
     void delete_shouldThrow_whenNotOwner() {
         when(eventRepository.findById(3L)).thenReturn(Optional.of(event(3L, 2L, 10)));
 
@@ -137,6 +147,16 @@ class EventServiceTest {
                 () -> eventService.delete(3L, 9L));
 
         assertEquals("Non autorisé", ex.getMessage());
+    }
+
+    @Test
+    void delete_shouldThrow_whenEventMissing() {
+        when(eventRepository.findById(3L)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> eventService.delete(3L, 9L));
+
+        assertEquals("Évènement introuvable", ex.getMessage());
     }
 
     @Test
@@ -170,6 +190,16 @@ class EventServiceTest {
                 () -> eventService.register(4L, 5L));
 
         assertEquals("Déjà inscrit", ex.getMessage());
+    }
+
+    @Test
+    void register_shouldThrow_whenEventMissing() {
+        when(eventRepository.findById(4L)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> eventService.register(4L, 5L));
+
+        assertEquals("Évènement introuvable", ex.getMessage());
     }
 
     @Test
@@ -209,6 +239,16 @@ class EventServiceTest {
     }
 
     @Test
+    void unregister_shouldThrow_whenRegistrationMissing() {
+        when(registrationRepository.findByUserIdAndEventId(5L, 4L)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> eventService.unregister(4L, 5L));
+
+        assertEquals("Inscription introuvable", ex.getMessage());
+    }
+
+    @Test
     void like_shouldCreateLikeAndReturnCount() {
         when(eventRepository.findById(4L)).thenReturn(Optional.of(event(4L, 1L, 10)));
         when(likeRepository.existsByUserIdAndEventId(5L, 4L)).thenReturn(false);
@@ -219,6 +259,16 @@ class EventServiceTest {
         assertTrue((Boolean) result.get("liked"));
         assertEquals(2L, result.get("likesCount"));
         verify(likeRepository).save(any(Like.class));
+    }
+
+    @Test
+    void like_shouldThrow_whenEventMissing() {
+        when(eventRepository.findById(4L)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> eventService.like(4L, 5L));
+
+        assertEquals("Évènement introuvable", ex.getMessage());
     }
 
     @Test

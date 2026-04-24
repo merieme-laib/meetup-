@@ -142,6 +142,16 @@ class UserServiceTest {
     }
 
     @Test
+    void updateEmail_shouldThrow_whenUserMissing() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> userService.updateEmail(1L, "new@example.com", "secret"));
+
+        assertEquals("Utilisateur introuvable", exception.getMessage());
+    }
+
+    @Test
     void updatePassword_shouldChangePassword() {
         User existing = new User();
         existing.setId(1L);
@@ -165,6 +175,16 @@ class UserServiceTest {
                 () -> userService.updatePassword(1L, "bad", "new"));
 
         assertEquals("Mot de passe actuel incorrect", exception.getMessage());
+    }
+
+    @Test
+    void updatePassword_shouldThrow_whenUserMissing() {
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> userService.updatePassword(1L, "old", "new"));
+
+        assertEquals("Utilisateur introuvable", exception.getMessage());
     }
 
     @Test
