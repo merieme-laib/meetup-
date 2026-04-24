@@ -70,6 +70,30 @@ class UserServiceTest {
     }
 
     @Test
+    void update_shouldPersistRemainingProvidedFields() {
+        User existing = new User();
+        existing.setId(1L);
+        existing.setFirstName("John");
+        existing.setLastName("Doe");
+        existing.setBio("Old bio");
+        existing.setAvatarUrl("old.png");
+
+        User updated = new User();
+        updated.setLastName("Smith");
+        updated.setAvatarUrl("new.png");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(userRepository.save(existing)).thenReturn(existing);
+
+        User result = userService.update(1L, updated);
+
+        assertEquals("John", result.getFirstName());
+        assertEquals("Smith", result.getLastName());
+        assertEquals("Old bio", result.getBio());
+        assertEquals("new.png", result.getAvatarUrl());
+    }
+
+    @Test
     void updateEmail_shouldChangeEmail() {
         User existing = new User();
         existing.setId(1L);
