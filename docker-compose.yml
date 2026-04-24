@@ -21,5 +21,5 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/gp2m1
       - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_PASSWORD=ellevent2026
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
