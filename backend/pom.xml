@@ -29,6 +29,8 @@
         <java.version>21</java.version>
         <sonar.projectKey>m1if10-2025-g02_gp2m1_AZ0gpAA6pItf3KCWeG_Y</sonar.projectKey>
         <sonar.projectName>gp2M1</sonar.projectName>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.junit.reportPaths>${project.basedir}/target/surefire-reports</sonar.junit.reportPaths>
     </properties>
     <dependencies>
         <dependency>
@@ -126,7 +128,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.10</version>
+                <version>0.8.13</version>
                 <executions>
                     <execution>
                         <goals>
@@ -135,7 +137,7 @@
                     </execution>
                     <execution>
                         <id>report</id>
-                        <phase>test</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
