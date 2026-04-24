@@ -71,6 +71,28 @@ class EventServiceTest {
     }
 
     @Test
+    void findAll_shouldReturnRepositoryResults() {
+        Event e = event(1L, 1L, 10);
+        when(eventRepository.findAll()).thenReturn(List.of(e));
+
+        List<Event> result = eventService.findAll();
+
+        assertEquals(1, result.size());
+        assertSame(e, result.getFirst());
+    }
+
+    @Test
+    void findById_shouldReturnOptionalFromRepository() {
+        Event e = event(1L, 1L, 10);
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(e));
+
+        Optional<Event> result = eventService.findById(1L);
+
+        assertTrue(result.isPresent());
+        assertSame(e, result.get());
+    }
+
+    @Test
     void create_shouldSetCreatorAndSave() {
         Event e = event(1L, 0L, 10);
         when(eventRepository.save(any(Event.class))).thenReturn(e);
@@ -118,6 +140,16 @@ class EventServiceTest {
     }
 
     @Test
+    void delete_shouldRemoveEvent_whenOwnerMatches() {
+        Event existing = event(3L, 9L, 10);
+        when(eventRepository.findById(3L)).thenReturn(Optional.of(existing));
+
+        eventService.delete(3L, 9L);
+
+        verify(eventRepository).delete(existing);
+    }
+
+    @Test
     void register_shouldReturnRegisteredAndCount() {
         when(eventRepository.findById(4L)).thenReturn(Optional.of(event(4L, 1L, 10)));
         when(registrationRepository.existsByUserIdAndEventId(5L, 4L)).thenReturn(false);
@@ -153,6 +185,19 @@ class EventServiceTest {
     }
 
     @Test
+    void register_shouldSkipCapacityCheck_whenMaxParticipantsIsNull() {
+        when(eventRepository.findById(4L)).thenReturn(Optional.of(event(4L, 1L, null)));
+        when(registrationRepository.existsByUserIdAndEventId(5L, 4L)).thenReturn(false);
+        when(registrationRepository.countByEventId(4L)).thenReturn(1L);
+
+        Map<String, Object> result = eventService.register(4L, 5L);
+
+        assertTrue((Boolean) result.get("registered"));
+        assertEquals(1L, result.get("participantsCount"));
+        verify(registrationRepository).save(any(Registration.class));
+    }
+
+    @Test
     void unregister_shouldReturnRegisteredFalse() {
         when(registrationRepository.findByUserIdAndEventId(5L, 4L)).thenReturn(Optional.of(new Registration(5L, 4L)));
         when(registrationRepository.countByEventId(4L)).thenReturn(0L);
@@ -174,6 +219,18 @@ class EventServiceTest {
         assertTrue((Boolean) result.get("liked"));
         assertEquals(2L, result.get("likesCount"));
         verify(likeRepository).save(any(Like.class));
+    }
+
+    @Test
+    void like_shouldNotDuplicateLike_whenAlreadyExists() {
+        when(eventRepository.findById(4L)).thenReturn(Optional.of(event(4L, 1L, 10)));
+        when(likeRepository.existsByUserIdAndEventId(5L, 4L)).thenReturn(true);
+        when(likeRepository.countByEventId(4L)).thenReturn(2L);
+
+        Map<String, Object> result = eventService.like(4L, 5L);
+
+        assertTrue((Boolean) result.get("liked"));
+        assertEquals(2L, result.get("likesCount"));
     }
 
     @Test
