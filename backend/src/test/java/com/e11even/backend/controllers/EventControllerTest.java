@@ -1,31 +1,33 @@
 package com.e11even.backend.controllers;
 
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
 import com.e11even.backend.dto.EventRequest;
 import com.e11even.backend.models.Event;
+import com.e11even.backend.models.Like;
+import com.e11even.backend.models.Registration;
+import com.e11even.backend.models.User;
 import com.e11even.backend.repositories.EventRepository;
 import com.e11even.backend.repositories.LikeRepository;
 import com.e11even.backend.repositories.RegistrationRepository;
 import com.e11even.backend.repositories.UserRepository;
 import com.e11even.backend.security.JwtUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EventControllerTest {
@@ -62,31 +64,35 @@ class EventControllerTest {
         event.setId(id);
         event.setCreatorId(creatorId);
         event.setTitle("Meetup");
-        when(eventRepository.findAll()).thenReturn(List.of(event));
-
-        List<Event> result = eventController.getAllEvents();
-
-        assertEquals(1, result.size());
-        assertEquals(2, result.getFirst().getParticipantsCount());
-        assertEquals(3, result.getFirst().getLikesCount());
-        assertTrue(result.getFirst().getIsRegistered());
-        assertFalse(result.getFirst().getIsLiked());
+        event.setDate(date);
+        return event;
     }
 
     @Test
     void createEvent_shouldReturnSavedEntity() {
-        Event input = new Event();
+        mockCurrentUser(5L);
+
+        EventRequest input = new EventRequest();
         input.setTitle("Input");
+        input.setDescription("Description");
+        input.setDate(LocalDateTime.now().plusDays(1));
+        input.setLocation("Lyon");
+        input.setCity("Lyon");
+        input.setOnline(false);
+        input.setImageUrl("image.png");
+        input.setPrice(12.5);
+        input.setMaxParticipants(50);
+        input.setCategory("Tech");
 
         Event saved = new Event();
         saved.setId(1L);
         saved.setTitle("Saved");
 
-        when(eventRepository.save(input)).thenReturn(saved);
+        when(eventRepository.save(any(Event.class))).thenReturn(saved);
 
-        ResponseEntity<Event> response = eventController.createEvent(input);
+        ResponseEntity<Event> response = eventController.createEvent(input, "Bearer token");
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertSame(saved, response.getBody());
     }
 
@@ -94,9 +100,13 @@ class EventControllerTest {
     void getEventById_shouldReturnOkAndEnrichEvent_whenFound() {
         mockCurrentUser(5L);
         Event found = buildEvent(10L, 5L, LocalDateTime.now().plusDays(1));
+        when(registrationRepository.countByEventId(10L)).thenReturn(1L);
+        when(likeRepository.countByEventId(10L)).thenReturn(4L);
+        when(registrationRepository.existsByUserIdAndEventId(5L, 10L)).thenReturn(true);
+        when(likeRepository.existsByUserIdAndEventId(5L, 10L)).thenReturn(true);
         when(eventRepository.findById(10L)).thenReturn(Optional.of(found));
 
-        ResponseEntity<Event> response = eventController.getEventById(10L);
+        ResponseEntity<?> response = eventController.getEventById(10L, "Bearer token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         Event body = assertInstanceOf(Event.class, response.getBody());
@@ -111,7 +121,7 @@ class EventControllerTest {
     void getEventById_shouldReturnNotFound_whenMissing() {
         when(eventRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResponseEntity<Event> response = eventController.getEventById(99L);
+        ResponseEntity<?> response = eventController.getEventById(99L, "Bearer token");
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
