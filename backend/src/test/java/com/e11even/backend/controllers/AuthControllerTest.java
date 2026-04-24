@@ -113,4 +113,17 @@ class AuthControllerTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
+
+    @Test
+    void login_shouldReturnBadRequest_whenFieldsAreMissing() {
+        User loginRequest = new User();
+        loginRequest.setEmail("john@example.com");
+        loginRequest.setPassword(" ");
+
+        ResponseEntity<?> response = authController.login(loginRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals("Email et mot de passe sont obligatoires", body.get("error"));
+    }
 }
