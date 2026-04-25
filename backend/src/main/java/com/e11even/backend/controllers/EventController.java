@@ -21,6 +21,8 @@ import com.e11even.backend.security.JwtUtils;
 
 import io.swagger.v3.oas.annotations.Parameter;
 
+import com.e11even.backend.models.User;
+
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
@@ -271,4 +273,25 @@ public class EventController {
             "likesCount", likeRepository.countByEventId(id)
         ));
     }
+
+
+    @GetMapping("/{id}/registrations")
+    public ResponseEntity<?> getEventRegistrations(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authHeader) {
+        Long userId = getCurrentUserId(authHeader);
+        // Vérifier que c'est le créateur
+        return eventRepository.findById(id).map(event -> {
+            if (!event.getCreatorId().equals(userId)) {
+                return ResponseEntity.status(403).build();
+            }
+            List<Registration> registrations = registrationRepository.findByEventId(id);
+            List<Long> userIds = registrations.stream()
+                    .map(Registration::getUserId)
+                    .collect(java.util.stream.Collectors.toList());
+            List<User> users = userRepository.findAllById(userIds);
+            return ResponseEntity.ok(users);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+    
 }

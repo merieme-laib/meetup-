@@ -210,38 +210,36 @@
           </div>
 
           <!-- Mes évènements -->
-          <div v-if="activeTab === 'created'" class="bg-white rounded-xl border border-gray-200 p-6">
-            <div class="flex items-center justify-between mb-5">
-              <h2 class="font-extrabold text-lg">Mes évènements</h2>
-              <RouterLink to="/evenements/creer" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-white font-semibold" style="background-color: #7A9E6E">
-                <Plus :size="14" /> Créer
-              </RouterLink>
+          <div v-if="activeTab === 'created'" class="space-y-4">
+            <!-- Stats -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <StatsCard :icon="CalendarDays" iconColor="#7A9E6E" :value="myEvents.length" label="Évènements" />
+              <StatsCard :icon="Users" iconColor="#3B82F6" :value="totalRegistrations" label="Inscrits" />
+              <StatsCard :icon="Heart" iconColor="#EC4899" :value="totalLikes" label="Likes reçus" />
             </div>
-            <div v-if="myEvents.length === 0" class="text-center py-12">
-              <CalendarDays :size="36" class="text-gray-200 mx-auto mb-3" />
-              <p class="text-gray-400 text-sm">Vous n'avez pas encore créé d'évènement.</p>
-              <RouterLink to="/evenements/creer" class="inline-block mt-4 px-4 py-2 rounded-lg text-sm text-white font-semibold" style="background-color: #7A9E6E">
-                Créer mon premier évènement
-              </RouterLink>
-            </div>
-            <div v-else class="space-y-3">
-              <div v-for="event in myEvents" :key="event.id"
-                class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
-                <div class="flex-1 min-w-0">
-                  <p class="font-semibold text-gray-900 text-sm truncate">{{ event.title }}</p>
-                  <p class="text-xs text-gray-400 mt-0.5">{{ event.city }} · {{ event.category }}</p>
-                </div>
-                <div class="flex items-center gap-2 ml-3">
-                  <RouterLink :to="`/evenements/${event.id}/modifier`"
-                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:border-gray-400 transition-colors">
-                    Modifier
-                  </RouterLink>
-                  <RouterLink :to="`/evenements/${event.id}`"
-                    class="px-3 py-1.5 text-xs font-semibold rounded-lg text-white transition-colors"
-                    style="background-color: #7A9E6E">
-                    Voir
-                  </RouterLink>
-                </div>
+
+            <!-- Liste -->
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+              <div class="flex items-center justify-between mb-5">
+                <h2 class="font-extrabold text-lg">Mes évènements</h2>
+                <RouterLink to="/evenements/creer" class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-white font-semibold bg-primary">
+                  <Plus :size="14" /> Créer
+                </RouterLink>
+              </div>
+              <div v-if="myEvents.length === 0" class="text-center py-12">
+                <CalendarDays :size="36" class="text-gray-200 mx-auto mb-3" />
+                <p class="text-gray-400 text-sm">Vous n'avez pas encore créé d'évènement.</p>
+                <RouterLink to="/evenements/creer" class="inline-block mt-4 px-4 py-2 rounded-lg text-sm text-white font-semibold bg-primary">
+                  Créer mon premier évènement
+                </RouterLink>
+              </div>
+              <div v-else class="space-y-4">
+                <EventOrganizerCard
+                  v-for="event in myEvents"
+                  :key="event.id"
+                  :event="event"
+                  @delete="handleDeleteEvent"
+                />
               </div>
             </div>
           </div>
@@ -343,6 +341,10 @@ import {
 import { useAuthStore } from '@/stores/auth.store'
 import api from '@/services/api'
 
+import StatsCard from '@/components/ui/StatsCard.vue'
+import EventOrganizerCard from '@/components/event/EventOrganizerCard.vue'
+import { Users } from 'lucide-vue-next'
+
 const authStore = useAuthStore()
 const router = useRouter()
 
@@ -400,6 +402,14 @@ const profileInfos = computed(() => [
   { icon: UserIcon, label: 'Nom',     value: authStore.user?.lastName  || '—' },
   { icon: Mail,     label: 'E-mail',  value: authStore.user?.email     || '—' },
 ])
+
+const totalRegistrations = computed(() =>
+  myEvents.value.reduce((sum: number, e: any) => sum + (e.participantsCount || 0), 0)
+)
+
+const totalLikes = computed(() =>
+  myEvents.value.reduce((sum: number, e: any) => sum + (e.likesCount || 0), 0)
+)
 
 onMounted(async () => {
   if (!authStore.isLoggedIn) return
@@ -504,6 +514,16 @@ async function handleUpdatePassword() {
     setTimeout(() => passwordSuccess.value = false, 3000)
   } catch (e: any) {
     passwordError.value = e.response?.data?.error || 'Une erreur est survenue'
+  }
+}
+
+async function handleDeleteEvent(id: number) {
+  if (!confirm('Supprimer cet évènement définitivement ?')) return
+  try {
+    await api.delete(`/events/${id}`)
+    myEvents.value = myEvents.value.filter((e: any) => e.id !== id)
+  } catch {
+    alert('Une erreur est survenue.')
   }
 }
 </script>
