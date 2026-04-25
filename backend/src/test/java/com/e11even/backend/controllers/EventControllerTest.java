@@ -1,17 +1,14 @@
 package com.e11even.backend.controllers;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-<<<<<<< HEAD
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-=======
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
->>>>>>> Test
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -75,44 +72,41 @@ class EventControllerTest {
     }
 
     @Test
-<<<<<<< HEAD
-=======
     void getAllEvents_shouldReturnEventsWithoutUserFlags_whenNoAuthHeader() {
         Event found = buildEvent(10L, 5L, LocalDateTime.now().plusDays(1));
-        when(eventRepository.findAll()).thenReturn(java.util.List.of(found));
+        when(eventRepository.findAll()).thenReturn(List.of(found));
         when(registrationRepository.countByEventId(10L)).thenReturn(1L);
         when(likeRepository.countByEventId(10L)).thenReturn(4L);
 
-        java.util.List<Event> response = eventController.getAllEvents(null);
+        List<Event> response = eventController.getAllEvents(null);
 
         assertEquals(1, response.size());
-        Event body = response.getFirst();
+        Event body = response.get(0);
         assertSame(found, body);
         assertEquals(1, body.getParticipantsCount());
         assertEquals(4, body.getLikesCount());
-        assertNull(body.getIsRegistered());
-        assertNull(body.getIsLiked());
+        assertEquals(null, body.getIsRegistered());
+        assertEquals(null, body.getIsLiked());
     }
 
     @Test
     void getAllEvents_shouldIgnoreInvalidToken_andReturnEvents() {
         Event found = buildEvent(11L, 7L, LocalDateTime.now().plusDays(1));
-        when(eventRepository.findAll()).thenReturn(java.util.List.of(found));
+        when(eventRepository.findAll()).thenReturn(List.of(found));
         when(jwtUtils.getEmailFromJwtToken("bad-token")).thenThrow(new RuntimeException("bad jwt"));
         when(registrationRepository.countByEventId(11L)).thenReturn(2L);
         when(likeRepository.countByEventId(11L)).thenReturn(3L);
 
-        java.util.List<Event> response = eventController.getAllEvents("Bearer bad-token");
+        List<Event> response = eventController.getAllEvents("Bearer bad-token");
 
         assertEquals(1, response.size());
-        assertEquals(2, response.getFirst().getParticipantsCount());
-        assertEquals(3, response.getFirst().getLikesCount());
-        assertNull(response.getFirst().getIsRegistered());
-        assertNull(response.getFirst().getIsLiked());
+        assertEquals(2, response.get(0).getParticipantsCount());
+        assertEquals(3, response.get(0).getLikesCount());
+        assertEquals(null, response.get(0).getIsRegistered());
+        assertEquals(null, response.get(0).getIsLiked());
     }
 
     @Test
->>>>>>> Test
     void createEvent_shouldReturnSavedEntity() {
         mockCurrentUser(5L);
 
@@ -127,19 +121,6 @@ class EventControllerTest {
         input.setPrice(12.5);
         input.setMaxParticipants(50);
         input.setCategory("Tech");
-<<<<<<< HEAD
-
-        Event saved = new Event();
-        saved.setId(1L);
-        saved.setTitle("Saved");
-
-        when(eventRepository.save(any(Event.class))).thenReturn(saved);
-
-        ResponseEntity<Event> response = eventController.createEvent(input, "Bearer token");
-
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertSame(saved, response.getBody());
-=======
 
         Event saved = new Event();
         saved.setId(1L);
@@ -280,7 +261,6 @@ class EventControllerTest {
         ResponseEntity<?> response = eventController.register(14L, "Bearer token");
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
->>>>>>> Test
     }
 
     @Test
