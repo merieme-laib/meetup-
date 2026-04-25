@@ -1,24 +1,23 @@
 package com.e11even.backend.controllers;
 
-import com.e11even.backend.dto.LoginRequest;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
 import com.e11even.backend.dto.RegisterRequest;
 import com.e11even.backend.dto.UserProfileResponse;
 import com.e11even.backend.models.User;
 import com.e11even.backend.security.JwtUtils;
 import com.e11even.backend.services.AuthService;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
@@ -69,7 +68,7 @@ class AuthControllerTest {
 
     @Test
     void login_shouldReturnTokenAndUser_whenSuccess() {
-        LoginRequest loginRequest = new LoginRequest();
+        User loginRequest = new User();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
@@ -90,7 +89,7 @@ class AuthControllerTest {
 
     @Test
     void login_shouldReturnUnauthorized_whenServiceReturnsNull() {
-        LoginRequest loginRequest = new LoginRequest();
+        User loginRequest = new User();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
@@ -103,7 +102,7 @@ class AuthControllerTest {
 
     @Test
     void login_shouldReturnUnauthorized_whenServiceThrows() {
-        LoginRequest loginRequest = new LoginRequest();
+        User loginRequest = new User();
         loginRequest.setEmail("john@example.com");
         loginRequest.setPassword("secret");
 
@@ -115,11 +114,21 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_shouldReturnBadRequest_whenEmailOrPasswordMissing() {
-        LoginRequest loginRequest = new LoginRequest();
+    void login_shouldReturnBadRequest_whenFieldsAreMissing() {
+        User loginRequest = new User();
         loginRequest.setEmail("john@example.com");
+        loginRequest.setPassword(" ");
 
         ResponseEntity<?> response = authController.login(loginRequest);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals("Email et mot de passe sont obligatoires", body.get("error"));
+    }
+
+    @Test
+    void login_shouldReturnBadRequest_whenRequestIsNull() {
+        ResponseEntity<?> response = authController.login(null);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
