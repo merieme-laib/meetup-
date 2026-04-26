@@ -79,12 +79,16 @@ public class EventController {
     @GetMapping
     public List<Event> getAllEvents(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        List<Event> events = eventRepository.findAll();
         Long userId = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try { userId = getCurrentUserId(authHeader); } catch (Exception ignored) {}
         }
         Long finalUserId = userId;
+        
+        List<Event> events = eventRepository.findAll().stream()
+            .filter(event -> !event.isCancelled())
+            .collect(java.util.stream.Collectors.toList());
+        
         events.forEach(event -> enrichEvent(event, finalUserId));
         return events;
     }

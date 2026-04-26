@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler; 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -53,8 +54,12 @@ public class UserController {
     private User getCurrentUser(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
         String email = jwtUtils.getEmailFromJwtToken(token);
-        return userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        if (user.getIsDeleted()) {
+            throw new RuntimeException("Ce compte a été supprimé");
+        }
+        return user;
     }
 
     @GetMapping("/me")
@@ -132,6 +137,37 @@ public class UserController {
             User user = getCurrentUser(authHeader);
             userService.updatePassword(user.getId(), body.get("currentPassword"), body.get("newPassword"));
             return ResponseEntity.ok(java.util.Map.of("message", "Mot de passe modifié avec succès"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteAccount(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody java.util.Map<String, String> body) {
+        try {
+            User user = getCurrentUser(authHeader);
+            
+            // Vérifier le mot de passe
+            String password = body.get("password");
+            if (password == null || !user.getPassword().equals(password)) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("error", "Mot de passe incorrect"));
+            }
+            
+            // Annuler tous les événements créés par l'utilisateur
+            List<Event> myEvents = eventRepository.findByCreatorId(user.getId());
+            myEvents.forEach(event -> {
+                event.setCancelled(true);
+                eventRepository.save(event);
+            });
+            
+            // Marquer le compte comme supprimé
+            user.setDeleted(true);
+            userRepository.save(user);
+            
+            return ResponseEntity.ok(java.util.Map.of("message", "Compte supprimé avec succès"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         }

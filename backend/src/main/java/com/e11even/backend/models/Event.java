@@ -49,6 +49,12 @@ public class Event {
     @Transient
     private Boolean isLiked;
 
+    @Column(name = "is_cancelled", columnDefinition = "boolean default false")
+    private boolean isCancelled = false;
+
+    public boolean isCancelled() { return isCancelled; }
+    public void setCancelled(boolean cancelled) { isCancelled = cancelled; }
+
    
     public Event() {}
 

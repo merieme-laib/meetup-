@@ -172,12 +172,20 @@
             </div>
             <div v-else class="space-y-3">
               <div v-for="event in myRegistrations" :key="event.id"
-                class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+                class="flex items-center justify-between p-4 rounded-xl border transition-colors"
+                :class="event.cancelled || event.isCancelled ? 'border-red-100 bg-red-50' : 'border-gray-100 hover:border-gray-200'">
                 <div class="flex-1 min-w-0">
-                  <p class="font-semibold text-gray-900 text-sm truncate">{{ event.title }}</p>
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <p class="font-semibold text-gray-900 text-sm truncate">{{ event.title }}</p>
+                    <span v-if="event.cancelled || event.isCancelled"
+                      class="px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-600 shrink-0">
+                      Annulé
+                    </span>
+                  </div>
                   <p class="text-xs text-gray-400 mt-0.5">{{ event.city }} · {{ event.category }}</p>
                 </div>
-                <RouterLink :to="`/evenements/${event.id}`"
+                <RouterLink v-if="!event.cancelled && !event.isCancelled"
+                  :to="`/evenements/${event.id}`"
                   class="px-3 py-1.5 text-xs font-semibold rounded-lg text-white ml-3"
                   style="background-color: #7A9E6E">
                   Voir
@@ -318,10 +326,31 @@
             <!-- Zone dangereuse -->
             <div class="bg-white rounded-xl border border-red-100 p-6">
               <h3 class="text-red-600 mb-2 font-bold">Zone dangereuse</h3>
-              <p class="text-sm text-gray-500 mb-4">La suppression de votre compte est définitive et irréversible.</p>
-              <button class="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors font-semibold">
-                Supprimer mon compte
-              </button>
+              <p class="text-sm text-gray-500 mb-4">La suppression de votre compte est définitive et irréversible. Tous vos événements seront annulés.</p>
+              
+              <div v-if="!showDeleteForm">
+                <button @click="showDeleteForm = true"
+                  class="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors font-semibold">
+                  Supprimer mon compte
+                </button>
+              </div>
+
+              <div v-else class="space-y-3">
+                <p class="text-sm text-red-600 font-semibold">Confirmez avec votre mot de passe :</p>
+                <input v-model="deletePassword" type="password" placeholder="••••••••" autocomplete="new-password"
+                  class="w-full px-3 py-2.5 border border-red-300 rounded-lg text-sm focus:outline-none focus:border-red-500 bg-red-50 transition-all" />
+                <p v-if="deleteError" class="text-xs text-red-500">{{ deleteError }}</p>
+                <div class="flex gap-3">
+                  <button @click="showDeleteForm = false; deletePassword = ''; deleteError = ''"
+                    class="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:border-gray-400 transition-colors">
+                    Annuler
+                  </button>
+                  <button @click="handleDeleteAccount"
+                    class="flex-1 py-2.5 rounded-lg text-white text-sm font-bold bg-red-500 hover:bg-red-600 transition-colors">
+                    Confirmer la suppression
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -526,4 +555,24 @@ async function handleDeleteEvent(id: number) {
     alert('Une erreur est survenue.')
   }
 }
+
+const showDeleteForm = ref(false)
+const deletePassword = ref('')
+const deleteError = ref('')
+
+async function handleDeleteAccount() {
+  deleteError.value = ''
+  if (!deletePassword.value) {
+    deleteError.value = 'Veuillez entrer votre mot de passe'
+    return
+  }
+  try {
+    await api.delete('/users/me', { data: { password: deletePassword.value } })
+    authStore.logout()
+    router.push('/')
+  } catch (e: any) {
+    deleteError.value = e.response?.data?.error || 'Une erreur est survenue'
+  }
+}
+
 </script>
