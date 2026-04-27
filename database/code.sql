@@ -92,7 +92,7 @@ VALUES ('Merieme', 'Laib', 'merieme@meetup.fr', '$2a$10$MBUhaIRLmU0OrBkTHpsQZ.3F
         'Co-fondatrice Meetup - Étudiant Master Info Lyon 1', 'admin'),
        ('Gabriel', 'Debotte', 'debotte@meetup.fr', '$2a$10$MBUhaIRLmU0OrBkTHpsQZ.3FPRk1a.kN.K.Xh3FKfrP38vdyYa1qm',
         'Co-fondateur Meetup - Étudiant Master Info Lyon 1', 'admin'),
-       ('Oscar', 'Gibert', 'oscar.gibert@meetup.fr', '$2a$10$MBUhaIRLmU0OrBkTHpsQZ.3FPRk1a.kN.K.Xh3FKfrP38vdyYa1qm',
+       ('Oscar', 'Gibert', 'oscar@meetup.fr', '$2a$10$MBUhaIRLmU0OrBkTHpsQZ.3FPRk1a.kN.K.Xh3FKfrP38vdyYa1qm',
         'Co-fondateur Meetup - Étudiant Master Info Lyon 1', 'admin'),
 
        ('Jean', 'Dupont', 'jean@email.com', '$2a$10$MBUhaIRLmU0OrBkTHpsQZ.3FPRk1a.kN.K.Xh3FKfrP38vdyYa1qm',
