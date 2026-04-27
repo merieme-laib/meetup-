@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.e11even.backend.dto.UpdateProfileRequest;
 import com.e11even.backend.dto.UserProfileResponse;
+import com.e11even.backend.dto.UpdateEmailRequest;    
+import com.e11even.backend.dto.UpdatePasswordRequest;  
+import com.e11even.backend.dto.DeleteAccountRequest;   
 import com.e11even.backend.models.Event;
 import com.e11even.backend.models.Like;
 import com.e11even.backend.models.Registration;
@@ -110,50 +113,47 @@ public class UserController {
         return ResponseEntity.ok(events);
     }
 
-    // PUT /api/users/me/email
     @PutMapping("/me/email")
     public ResponseEntity<?> updateEmail(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody java.util.Map<String, String> body) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader,
+            @RequestBody UpdateEmailRequest request) {
         try {
             User user = getCurrentUser(authHeader);
-            User saved = userService.updateEmail(user.getId(), body.get("newEmail"), body.get("password"));
+            User saved = userService.updateEmail(user.getId(), request.getNewEmail(), request.getPassword());
             String newToken = jwtUtils.generateJwtToken(saved.getEmail());
-            return ResponseEntity.ok(java.util.Map.of(
-                "user", saved,
+            return ResponseEntity.ok(Map.of(
+                "user", new UserProfileResponse(saved), // Sécurité : On cache le mot de passe
                 "token", newToken
             ));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    // PUT /api/users/me/password
     @PutMapping("/me/password")
     public ResponseEntity<?> updatePassword(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody java.util.Map<String, String> body) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader,
+            @RequestBody UpdatePasswordRequest request) {
         try {
             User user = getCurrentUser(authHeader);
-            userService.updatePassword(user.getId(), body.get("currentPassword"), body.get("newPassword"));
-            return ResponseEntity.ok(java.util.Map.of("message", "Mot de passe modifié avec succès"));
+            userService.updatePassword(user.getId(), request.getCurrentPassword(), request.getNewPassword());
+            return ResponseEntity.ok(Map.of("message", "Mot de passe modifié avec succès"));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-
 
     @DeleteMapping("/me")
     public ResponseEntity<?> deleteAccount(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestBody java.util.Map<String, String> body) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader,
+            @RequestBody DeleteAccountRequest request) {
         try {
             User user = getCurrentUser(authHeader);
             
             // Vérifier le mot de passe
-            String password = body.get("password");
+            String password = request.getPassword();
             if (password == null || !user.getPassword().equals(password)) {
-                return ResponseEntity.badRequest().body(java.util.Map.of("error", "Mot de passe incorrect"));
+                return ResponseEntity.badRequest().body(Map.of("error", "Mot de passe incorrect"));
             }
             
             // Annuler tous les événements créés par l'utilisateur
@@ -167,9 +167,9 @@ public class UserController {
             user.setDeleted(true);
             userRepository.save(user);
             
-            return ResponseEntity.ok(java.util.Map.of("message", "Compte supprimé avec succès"));
+            return ResponseEntity.ok(Map.of("message", "Compte supprimé avec succès"));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 

@@ -1,128 +1,215 @@
 package com.e11even.backend.controllers;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import com.e11even.backend.dto.UpdateProfileRequest;
+import com.e11even.backend.dto.UserProfileResponse;
+import com.e11even.backend.dto.UpdateEmailRequest; 
+import com.e11even.backend.dto.UpdatePasswordRequest; 
+import com.e11even.backend.models.Event;
+import com.e11even.backend.models.Like;
+import com.e11even.backend.models.Registration;
+import com.e11even.backend.models.User;
+import com.e11even.backend.repositories.EventRepository;
+import com.e11even.backend.repositories.LikeRepository;
+import com.e11even.backend.repositories.RegistrationRepository;
+import com.e11even.backend.repositories.UserRepository;
+import com.e11even.backend.security.JwtUtils;
+import com.e11even.backend.services.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import com.e11even.backend.dto.RegisterRequest;
-import com.e11even.backend.dto.UserProfileResponse;
-import com.e11even.backend.models.User;
-import com.e11even.backend.security.JwtUtils;
-import com.e11even.backend.services.AuthService;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class AuthControllerTest {
+class UserControllerTest {
 
     @Mock
-    private AuthService authService;
+    private UserService userService;
 
     @Mock
     private JwtUtils jwtUtils;
 
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private RegistrationRepository registrationRepository;
+
+    @Mock
+    private LikeRepository likeRepository;
+
+    @Mock
+    private EventRepository eventRepository;
+
     @InjectMocks
-    private AuthController authController;
+    private UserController userController;
+
+    private User mockCurrentUser() {
+        User user = new User();
+        user.setId(7L);
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setEmail("john@example.com");
+        user.setPassword("secret");
+        when(jwtUtils.getEmailFromJwtToken("token")).thenReturn("john@example.com");
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(user));
+        return user;
+    }
 
     @Test
-    void register_shouldReturnTokenAndUser_whenSuccess() {
-        RegisterRequest input = new RegisterRequest();
-        input.setFirstName("John");
-        input.setLastName("Doe");
-        input.setEmail("john@example.com");
-        input.setPassword("secret");
+    void getMe_shouldReturnProfile() {
+        User user = mockCurrentUser();
+
+        ResponseEntity<UserProfileResponse> response = userController.getMe("Bearer token");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        UserProfileResponse body = response.getBody();
+        assertEquals(user.getEmail(), body.getEmail());
+        assertEquals(user.getFirstName(), body.getFirstName());
+    }
+
+    @Test
+    void updateMe_shouldPersistAndReturnProfile() {
+        User user = mockCurrentUser();
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setFirstName("Jane");
+        request.setLastName("Smith");
+        request.setBio("Bio");
+        request.setAvatarUrl("http://example.com/avatar.png");
 
         User saved = new User();
-        saved.setEmail("john@example.com");
+        saved.setId(user.getId());
+        saved.setFirstName("Jane");
+        saved.setLastName("Smith");
+        saved.setEmail(user.getEmail());
+        saved.setBio("Bio");
+        saved.setAvatarUrl("http://example.com/avatar.png");
+        when(userService.update(user.getId(), user)).thenReturn(saved);
 
-        when(authService.register(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(saved);
-        when(jwtUtils.generateJwtToken("john@example.com")).thenReturn("jwt-token");
-
-        ResponseEntity<?> response = authController.register(input);
+        ResponseEntity<UserProfileResponse> response = userController.updateMe("Bearer token", request);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
-        assertEquals("jwt-token", body.get("token"));
-        UserProfileResponse userProfile = assertInstanceOf(UserProfileResponse.class, body.get("user"));
-        assertEquals("john@example.com", userProfile.getEmail());
+        assertEquals("Jane", response.getBody().getFirstName());
+        verify(userService).update(user.getId(), user);
     }
 
     @Test
-    void register_shouldReturnBadRequest_whenServiceThrows() {
-        RegisterRequest input = new RegisterRequest();
-        input.setEmail("john@example.com");
-        input.setPassword("secret");
-        when(authService.register(org.mockito.ArgumentMatchers.any(User.class))).thenThrow(new RuntimeException("already exists"));
+    void getMyRegistrations_shouldReturnEvents() {
+        User user = mockCurrentUser();
+        Event event = new Event();
+        event.setId(11L);
+        event.setTitle("Registered event");
+        when(registrationRepository.findByUserId(user.getId())).thenReturn(List.of(new Registration(user.getId(), 11L)));
+        when(eventRepository.findAllById(List.of(11L))).thenReturn(List.of(event));
 
-        ResponseEntity<?> response = authController.register(input);
+        ResponseEntity<List<Event>> response = userController.getMyRegistrations("Bearer token");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().size());
+        assertSame(event, response.getBody().getFirst());
+    }
+
+    @Test
+    void getMyLikes_shouldReturnEvents() {
+        User user = mockCurrentUser();
+        Event event = new Event();
+        event.setId(12L);
+        event.setTitle("Liked event");
+        when(likeRepository.findByUserId(user.getId())).thenReturn(List.of(new Like(user.getId(), 12L)));
+        when(eventRepository.findAllById(List.of(12L))).thenReturn(List.of(event));
+
+        ResponseEntity<List<Event>> response = userController.getMyLikes("Bearer token");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(1, response.getBody().size());
+        assertSame(event, response.getBody().getFirst());
+    }
+
+    @Test
+    void updateEmail_shouldReturnTokenAndUser() {
+        User user = mockCurrentUser();
+        User saved = new User();
+        saved.setId(user.getId());
+        saved.setEmail("new@example.com");
+        when(userService.updateEmail(user.getId(), "new@example.com", "secret")).thenReturn(saved);
+        when(jwtUtils.generateJwtToken("new@example.com")).thenReturn("new-token");
+
+        
+        UpdateEmailRequest req = new UpdateEmailRequest();
+        req.setNewEmail("new@example.com");
+        req.setPassword("secret");
+
+        ResponseEntity<?> response = userController.updateEmail("Bearer token", req);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals("new-token", body.get("token"));
+        UserProfileResponse userResponse = assertInstanceOf(UserProfileResponse.class, body.get("user"));
+        assertEquals("new@example.com", userResponse.getEmail());
+    }
+
+    @Test
+    void updateEmail_shouldReturnBadRequest_whenServiceThrows() {
+        mockCurrentUser();
+        when(userService.updateEmail(7L, "new@example.com", "wrong")).thenThrow(new RuntimeException("Mot de passe incorrect"));
+
+        UpdateEmailRequest req = new UpdateEmailRequest();
+        req.setNewEmail("new@example.com");
+        req.setPassword("wrong");
+
+        ResponseEntity<?> response = userController.updateEmail("Bearer token", req);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
-    void login_shouldReturnTokenAndUser_whenSuccess() {
-        User loginRequest = new User();
-        loginRequest.setEmail("john@example.com");
-        loginRequest.setPassword("secret");
+    void updatePassword_shouldReturnMessage() {
+        User user = mockCurrentUser();
+        
+        UpdatePasswordRequest req = new UpdatePasswordRequest();
+        req.setCurrentPassword("secret");
+        req.setNewPassword("new-secret");
 
-        User found = new User();
-        found.setEmail("john@example.com");
-
-        when(authService.login("john@example.com", "secret")).thenReturn(found);
-        when(jwtUtils.generateJwtToken("john@example.com")).thenReturn("jwt-token");
-
-        ResponseEntity<?> response = authController.login(loginRequest);
+        ResponseEntity<?> response = userController.updatePassword("Bearer token", req);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
-        assertEquals("jwt-token", body.get("token"));
-        UserProfileResponse userProfile = assertInstanceOf(UserProfileResponse.class, body.get("user"));
-        assertEquals("john@example.com", userProfile.getEmail());
+        assertEquals("Mot de passe modifié avec succès", body.get("message"));
+        verify(userService).updatePassword(user.getId(), "secret", "new-secret");
     }
 
     @Test
-    void login_shouldReturnUnauthorized_whenServiceReturnsNull() {
-        User loginRequest = new User();
-        loginRequest.setEmail("john@example.com");
-        loginRequest.setPassword("secret");
+    void updatePassword_shouldReturnBadRequest_whenServiceThrows() {
+        mockCurrentUser();
+        when(userService.updatePassword(7L, "bad", "new-secret")).thenThrow(new RuntimeException("Mot de passe actuel incorrect"));
 
-        when(authService.login("john@example.com", "secret")).thenReturn(null);
+        UpdatePasswordRequest req = new UpdatePasswordRequest();
+        req.setCurrentPassword("bad");
+        req.setNewPassword("new-secret");
 
-        ResponseEntity<?> response = authController.login(loginRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
-    void login_shouldReturnUnauthorized_whenServiceThrows() {
-        User loginRequest = new User();
-        loginRequest.setEmail("john@example.com");
-        loginRequest.setPassword("secret");
-
-        when(authService.login("john@example.com", "secret")).thenThrow(new RuntimeException("bad credentials"));
-
-        ResponseEntity<?> response = authController.login(loginRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
-    void login_shouldReturnBadRequest_whenFieldsAreMissing() {
-        User loginRequest = new User();
-        loginRequest.setEmail("john@example.com");
-        loginRequest.setPassword(" ");
-
-        ResponseEntity<?> response = authController.login(loginRequest);
+        ResponseEntity<?> response = userController.updatePassword("Bearer token", req);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void handleRuntimeException_shouldReturnNotFound() {
+        ResponseEntity<?> response = userController.handleRuntimeException(new RuntimeException("absent"));
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
-        assertEquals("Email et mot de passe sont obligatoires", body.get("error"));
+        assertEquals("absent", body.get("error"));
     }
 }
