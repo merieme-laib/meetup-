@@ -135,10 +135,10 @@
 
             <!-- Bouton modifier si créateur -->
             <RouterLink
-              v-if="authStore.user && authStore.user.id === event.creatorId"
+              v-if="authStore.user && (authStore.user.id === event.creatorId || authStore.user.role === 'admin')"
               :to="`/evenements/${event.id}/modifier`"
               class="w-full mt-3 py-2.5 px-4 font-semibold rounded-xl border border-gray-200 text-gray-600 hover:border-gray-400 transition-all flex items-center justify-center gap-2 text-sm">
-              ✏️ Modifier l'évènement
+              ✏️ Modifier / Gérer l'évènement
             </RouterLink>
           </div>
         </div>
