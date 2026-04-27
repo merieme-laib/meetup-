@@ -24,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import com.e11even.backend.dto.EventRequest;
+import com.e11even.backend.dto.UserProfileResponse; // 👈 Import ajouté
 import com.e11even.backend.models.Event;
 import com.e11even.backend.models.Like;
 import com.e11even.backend.models.Registration;
@@ -419,9 +420,12 @@ class EventControllerTest {
         ResponseEntity<?> response = eventController.getEventRegistrations(40L, "Bearer token");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        List<?> users = assertInstanceOf(List.class, response.getBody());
-        assertEquals(1, users.size());
-        assertSame(attendee, users.get(0));
+        List<?> body = assertInstanceOf(List.class, response.getBody());
+        assertEquals(1, body.size());
+        
+        // On vérifie que c'est un UserProfileResponse et pas un User
+        UserProfileResponse userRes = assertInstanceOf(UserProfileResponse.class, body.get(0));
+        assertEquals("attendee@example.com", userRes.getEmail());
     }
 
     @Test
@@ -433,6 +437,9 @@ class EventControllerTest {
         ResponseEntity<?> response = eventController.getEventRegistrations(41L, "Bearer token");
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        // On vérifie qu'on a bien un message d'erreur JSON
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals("Action interdite : vous n'êtes pas le créateur.", body.get("error"));
     }
 
     @Test
@@ -443,6 +450,9 @@ class EventControllerTest {
         ResponseEntity<?> response = eventController.getEventRegistrations(42L, "Bearer token");
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNull(response.getBody());
+        
+        // On vérifie qu'on a bien un message d'erreur JSON au lieu de null
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals("L'évènement est introuvable.", body.get("error"));
     }
 }
