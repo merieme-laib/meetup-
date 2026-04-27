@@ -3,6 +3,7 @@ package com.e11even.backend.services;
 import com.e11even.backend.models.Event;
 import com.e11even.backend.models.Like;
 import com.e11even.backend.models.Registration;
+import com.e11even.backend.models.User; 
 import com.e11even.backend.repositories.EventRepository;
 import com.e11even.backend.repositories.LikeRepository;
 import com.e11even.backend.repositories.RegistrationRepository;
@@ -59,6 +60,13 @@ class EventServiceTest {
         return event;
     }
 
+    private User testUser(Long id, String role) {
+        User user = new User();
+        user.setId(id);
+        user.setRole(role);
+        return user;
+    }
+
     @Test
     void search_shouldDelegateToRepository() {
         Event e = event(1L, 1L, 10);
@@ -112,7 +120,7 @@ class EventServiceTest {
         when(eventRepository.findById(3L)).thenReturn(Optional.of(existing));
         when(eventRepository.save(existing)).thenReturn(existing);
 
-        Event result = eventService.update(3L, updated, 9L);
+        Event result = eventService.update(3L, updated, testUser(9L, "user"));
 
         assertSame(existing, result);
         assertEquals("Updated", existing.getTitle());
@@ -124,7 +132,7 @@ class EventServiceTest {
         when(eventRepository.findById(3L)).thenReturn(Optional.empty());
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> eventService.update(3L, event(3L, 1L, 1), 1L));
+                () -> eventService.update(3L, event(3L, 1L, 1), testUser(1L, "user")));
 
         assertEquals("Évènement introuvable", ex.getMessage());
     }
@@ -134,9 +142,9 @@ class EventServiceTest {
         when(eventRepository.findById(3L)).thenReturn(Optional.of(event(3L, 2L, 10)));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> eventService.update(3L, event(3L, 2L, 10), 9L));
+                () -> eventService.update(3L, event(3L, 2L, 10), testUser(9L, "user")));
 
-        assertEquals("Non autorisé", ex.getMessage());
+        assertEquals("Non autorisé : Seul le créateur ou un Admin peut modifier.", ex.getMessage());
     }
 
     @Test
@@ -144,9 +152,9 @@ class EventServiceTest {
         when(eventRepository.findById(3L)).thenReturn(Optional.of(event(3L, 2L, 10)));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> eventService.delete(3L, 9L));
+                () -> eventService.delete(3L, testUser(9L, "user")));
 
-        assertEquals("Non autorisé", ex.getMessage());
+        assertEquals("Non autorisé : Seul le créateur ou un Admin peut supprimer.", ex.getMessage());
     }
 
     @Test
@@ -154,7 +162,7 @@ class EventServiceTest {
         when(eventRepository.findById(3L)).thenReturn(Optional.empty());
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> eventService.delete(3L, 9L));
+                () -> eventService.delete(3L, testUser(9L, "user")));
 
         assertEquals("Évènement introuvable", ex.getMessage());
     }
@@ -164,7 +172,7 @@ class EventServiceTest {
         Event existing = event(3L, 9L, 10);
         when(eventRepository.findById(3L)).thenReturn(Optional.of(existing));
 
-        eventService.delete(3L, 9L);
+        eventService.delete(3L, testUser(9L, "user"));
 
         verify(eventRepository).delete(existing);
     }
@@ -211,7 +219,7 @@ class EventServiceTest {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> eventService.register(4L, 5L));
 
-        assertEquals("Plus de places disponibles", ex.getMessage());
+        assertEquals("Cet évènement est complet.", ex.getMessage());
     }
 
     @Test
