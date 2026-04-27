@@ -1,6 +1,5 @@
 package com.e11even.backend.controllers;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -11,30 +10,23 @@ import org.springframework.web.bind.annotation.*;
 
 import com.e11even.backend.dto.EventRequest;
 import com.e11even.backend.models.Event;
-import com.e11even.backend.models.Like;
 import com.e11even.backend.models.Registration;
+import com.e11even.backend.models.User;
 import com.e11even.backend.repositories.EventRepository;
 import com.e11even.backend.repositories.LikeRepository;
 import com.e11even.backend.repositories.RegistrationRepository;
 import com.e11even.backend.repositories.UserRepository;
 import com.e11even.backend.security.JwtUtils;
+import com.e11even.backend.services.EventService;
 
 import io.swagger.v3.oas.annotations.Parameter;
-
-import com.e11even.backend.models.User;
 
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
 
     @Autowired
-    private EventRepository eventRepository;
-
-    @Autowired
-    private RegistrationRepository registrationRepository;
-
-    @Autowired
-    private LikeRepository likeRepository;
+    private EventService eventService;
 
     @Autowired
     private JwtUtils jwtUtils;
@@ -42,20 +34,25 @@ public class EventController {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * Récupère l'ID de l'utilisateur à partir du Token JWT
-     */
+    // Repositories conservés uniquement pour la méthode enrichEvent et l'affichage des inscrits
+    @Autowired
+    private EventRepository eventRepository;
+    @Autowired
+    private RegistrationRepository registrationRepository;
+    @Autowired
+    private LikeRepository likeRepository;
+
     private Long getCurrentUserId(String authHeader) {
+        return getCurrentUserObject(authHeader).getId();
+    }
+
+    private User getCurrentUserObject(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
         String email = jwtUtils.getEmailFromJwtToken(token);
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"))
-                .getId();
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
     }
 
-    /**
-     * Ajoute les compteurs et les états (like/inscription) à l'objet Event
-     */
     private void enrichEvent(Event event, Long userId) {
         event.setParticipantsCount((int) registrationRepository.countByEventId(event.getId()));
         event.setLikesCount((int) likeRepository.countByEventId(event.getId()));
@@ -65,17 +62,7 @@ public class EventController {
         }
     }
 
-    private boolean isPastEvent(Event event) {
-        if (event.getDate() == null) {
-            return false;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime normalizedEventDate = event.getDate().withYear(now.getYear());
-        return normalizedEventDate.isBefore(now);
-    }
-
-    //  LISTE DES ÉVÈNEMENTS 
+    // LISTE DES ÉVÈNEMENTS 
     @GetMapping
     public List<Event> getAllEvents(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -85,7 +72,7 @@ public class EventController {
         }
         Long finalUserId = userId;
         
-        List<Event> events = eventRepository.findAll().stream()
+        List<Event> events = eventService.findAll().stream()
             .filter(event -> !event.isCancelled())
             .collect(java.util.stream.Collectors.toList());
         
@@ -104,7 +91,7 @@ public class EventController {
             try { userId = getCurrentUserId(authHeader); } catch (Exception ignored) {}
         }
         
-        Optional<Event> eventOpt = eventRepository.findById(id);
+        Optional<Event> eventOpt = eventService.findById(id);
         if (eventOpt.isPresent()) {
             Event event = eventOpt.get();
             enrichEvent(event, userId);
@@ -134,10 +121,8 @@ public class EventController {
         event.setMaxParticipants(request.getMaxParticipants());
         event.setCategory(request.getCategory());
         
-        // On force le créateur à être l'utilisateur connecté
-        event.setCreatorId(userId);
-        
-        return ResponseEntity.status(201).body(eventRepository.save(event));
+        Event createdEvent = eventService.create(event, userId);
+        return ResponseEntity.status(201).body(createdEvent);
     }
 
     // MODIFICATION 
@@ -147,32 +132,28 @@ public class EventController {
             @RequestBody EventRequest request,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         
-        Long currentUserId = getCurrentUserId(authHeader);
-        Optional<Event> eventOpt = eventRepository.findById(id);
-
-        if (eventOpt.isPresent()) {
-            Event event = eventOpt.get();
+        try {
+            User currentUser = getCurrentUserObject(authHeader);
             
-            // Sécurité : Vérification de propriété 
-            if (!event.getCreatorId().equals(currentUserId)) {
-                return ResponseEntity.status(403).body(Map.of("error", "Vous n'êtes pas le créateur de cet évènement. Modification refusée."));
-            }
+            Event updatedData = new Event();
+            updatedData.setTitle(request.getTitle());
+            updatedData.setDescription(request.getDescription());
+            updatedData.setDate(request.getDate());
+            updatedData.setLocation(request.getLocation());
+            updatedData.setCity(request.getCity());
+            updatedData.setOnline(request.isOnline());
+            updatedData.setImageUrl(request.getImageUrl());
+            updatedData.setPrice(request.getPrice());
+            updatedData.setMaxParticipants(request.getMaxParticipants());
+            updatedData.setCategory(request.getCategory());
 
-            // Mise à jour des champs autorisés
-            event.setTitle(request.getTitle());
-            event.setDescription(request.getDescription());
-            event.setDate(request.getDate());
-            event.setLocation(request.getLocation());
-            event.setCity(request.getCity());
-            event.setOnline(request.isOnline());
-            event.setImageUrl(request.getImageUrl());
-            event.setPrice(request.getPrice());
-            event.setMaxParticipants(request.getMaxParticipants());
-            event.setCategory(request.getCategory());
+            Event savedEvent = eventService.update(id, updatedData, currentUser);
+            return ResponseEntity.ok(savedEvent);
             
-            return ResponseEntity.ok(eventRepository.save(event));
-        } else {
-            return ResponseEntity.status(404).body(Map.of("error", "L'évènement que vous essayez de modifier n'existe pas."));
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Non autorisé")) return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            if (e.getMessage().contains("introuvable")) return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -182,21 +163,14 @@ public class EventController {
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         
-        Long currentUserId = getCurrentUserId(authHeader);
-        Optional<Event> eventOpt = eventRepository.findById(id);
-
-        if (eventOpt.isPresent()) {
-            Event event = eventOpt.get();
-            
-            // Sécurité : Seul le créateur peut supprimer
-            if (!event.getCreatorId().equals(currentUserId)) {
-                return ResponseEntity.status(403).body(Map.of("error", "Action interdite : vous ne pouvez pas supprimer l'évènement de quelqu'un d'autre."));
-            }
-            
-            eventRepository.deleteById(id);
+        try {
+            User currentUser = getCurrentUserObject(authHeader);
+            eventService.delete(id, currentUser);
             return ResponseEntity.noContent().build();
-        } else {
-            return ResponseEntity.status(404).body(Map.of("error", "L'évènement que vous essayez de supprimer est introuvable."));
+            
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("Non autorisé")) return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -206,27 +180,15 @@ public class EventController {
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         
-        Long userId = getCurrentUserId(authHeader);
-
-        Optional<Event> eventOpt = eventRepository.findById(id);
-        if (eventOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(Map.of("error", "Cet évènement n'existe pas."));
+        try {
+            Long userId = getCurrentUserId(authHeader);
+            Map<String, Object> result = eventService.register(id, userId);
+            return ResponseEntity.status(201).body(result);
+            
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("introuvable")) return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
-        Event event = eventOpt.get();
-        if (isPastEvent(event)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Impossible de s'inscrire à un évènement déjà passé."));
-        }
-        
-        if (registrationRepository.existsByUserIdAndEventId(userId, id)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Vous êtes déjà inscrit à cet évènement."));
-        }
-        
-        registrationRepository.save(new Registration(userId, id));
-        return ResponseEntity.status(201).body(Map.of(
-            "registered", true,
-            "participantsCount", registrationRepository.countByEventId(id)
-        ));
     }
 
     // DÉSINCRIPTION
@@ -235,14 +197,13 @@ public class EventController {
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         
-        Long userId = getCurrentUserId(authHeader);
-        registrationRepository.findByUserIdAndEventId(userId, id)
-                .ifPresent(registrationRepository::delete);
-                
-        return ResponseEntity.ok(Map.of(
-            "registered", false,
-            "participantsCount", registrationRepository.countByEventId(id)
-        ));
+        try {
+            Long userId = getCurrentUserId(authHeader);
+            Map<String, Object> result = eventService.unregister(id, userId);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // LIKE
@@ -251,43 +212,43 @@ public class EventController {
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         
-        Long userId = getCurrentUserId(authHeader);
-        if (!likeRepository.existsByUserIdAndEventId(userId, id)) {
-            likeRepository.save(new Like(userId, id));
+        try {
+            Long userId = getCurrentUserId(authHeader);
+            Map<String, Object> result = eventService.like(id, userId);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        
-        return ResponseEntity.ok(Map.of(
-            "liked", true,
-            "likesCount", likeRepository.countByEventId(id)
-        ));
     }
 
-    //UNLIKE
+    // UNLIKE
     @DeleteMapping("/{id}/like")
     public ResponseEntity<?> unlike(
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         
-        Long userId = getCurrentUserId(authHeader);
-        likeRepository.findByUserIdAndEventId(userId, id)
-                .ifPresent(likeRepository::delete);
-                
-        return ResponseEntity.ok(Map.of(
-            "liked", false,
-            "likesCount", likeRepository.countByEventId(id)
-        ));
+        try {
+            Long userId = getCurrentUserId(authHeader);
+            Map<String, Object> result = eventService.unlike(id, userId);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}/registrations")
     public ResponseEntity<?> getEventRegistrations(
             @PathVariable Long id,
             @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
-        Long userId = getCurrentUserId(authHeader);
         
-        return eventRepository.findById(id).map(event -> {
-            if (!event.getCreatorId().equals(userId)) {
-                // On remet un vrai message JSON
-                return ResponseEntity.status(403).body(Map.of("error", "Action interdite : vous n'êtes pas le créateur."));
+        User currentUser = getCurrentUserObject(authHeader);
+        
+        return eventService.findById(id).map(event -> {
+            boolean isCreator = event.getCreatorId().equals(currentUser.getId());
+            boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+
+            if (!isCreator && !isAdmin) {
+                return ResponseEntity.status(403).body(Map.of("error", "Action interdite : vous n'êtes pas autorisé à voir cette liste."));
             }
             List<Registration> registrations = registrationRepository.findByEventId(id);
             List<Long> userIds = registrations.stream()

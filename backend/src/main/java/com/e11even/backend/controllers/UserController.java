@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler; 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,6 +54,9 @@ public class UserController {
 
     @Autowired
     private EventRepository eventRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder; 
 
     private User getCurrentUser(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
@@ -122,7 +126,7 @@ public class UserController {
             User saved = userService.updateEmail(user.getId(), request.getNewEmail(), request.getPassword());
             String newToken = jwtUtils.generateJwtToken(saved.getEmail());
             return ResponseEntity.ok(Map.of(
-                "user", new UserProfileResponse(saved), // Sécurité : On cache le mot de passe
+                "user", new UserProfileResponse(saved),
                 "token", newToken
             ));
         } catch (RuntimeException e) {
@@ -150,9 +154,8 @@ public class UserController {
         try {
             User user = getCurrentUser(authHeader);
             
-            // Vérifier le mot de passe
             String password = request.getPassword();
-            if (password == null || !user.getPassword().equals(password)) {
+            if (password == null || !passwordEncoder.matches(password, user.getPassword())) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Mot de passe incorrect"));
             }
             

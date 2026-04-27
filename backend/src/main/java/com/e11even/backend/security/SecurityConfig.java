@@ -27,15 +27,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. ON ACTIVE CORS ICI
+                //ON ACTIVE CORS ICI
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // 2. On désactive CSRF
+                // On désactive CSRF
                 .csrf(csrf -> csrf.disable())
 
-                // 3. Mode Stateless pour le JWT
+                // Mode Stateless pour le JWT
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 4. Règles des routes
+                // Règles des routes
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
@@ -72,5 +72,10 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

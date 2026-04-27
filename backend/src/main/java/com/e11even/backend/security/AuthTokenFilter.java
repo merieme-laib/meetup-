@@ -25,28 +25,28 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            // 1. On cherche le token dans l'en-tête de la requête Frontend
+            // On cherche le token dans l'en-tête de la requête Frontend
             String jwt = parseJwt(request);
 
-            // 2. Si on a trouvé un token et que la machine (JwtUtils) dit qu'il est valide...
+            // Si on a trouvé un token et que la machine (JwtUtils) dit qu'il est valide...
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 
-                // 3. On extrait l'email caché dans le token
+                // On extrait l'email caché dans le token
                 String email = jwtUtils.getEmailFromJwtToken(jwt);
 
-                // 4. On crée le badge officiel pour Spring Security
+                // On crée le badge officiel pour Spring Security
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         email, null, new ArrayList<>());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // 5. On accroche le badge sur la veste de l'utilisateur (SecurityContext)
+                // On accroche le badge sur la veste de l'utilisateur (SecurityContext)
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
             System.err.println("Impossible de vérifier le JWT : " + e.getMessage());
         }
 
-        // 6. On laisse la requête continuer son chemin
+        // On laisse la requête continuer son chemin
         filterChain.doFilter(request, response);
     }
 

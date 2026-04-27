@@ -3,12 +3,14 @@ package com.e11even.backend.services;
 import com.e11even.backend.models.Event;
 import com.e11even.backend.models.Like;
 import com.e11even.backend.models.Registration;
+import com.e11even.backend.models.User; 
 import com.e11even.backend.repositories.EventRepository;
 import com.e11even.backend.repositories.LikeRepository;
 import com.e11even.backend.repositories.RegistrationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,15 @@ public class EventService {
 
     @Autowired
     private LikeRepository likeRepository;
+
+    // --- Helpers de sécurité ---
+    
+    private boolean isPastEvent(Event event) {
+        if (event.getDate() == null) return false;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime normalizedEventDate = event.getDate().withYear(now.getYear());
+        return normalizedEventDate.isBefore(now);
+    }
 
     // --- CRUD Événements ---
 
@@ -45,12 +56,17 @@ public class EventService {
         return eventRepository.save(event);
     }
 
-    public Event update(Long id, Event updated, Long userId) {
+    public Event update(Long id, Event updated, User currentUser) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Évènement introuvable"));
-        if (!event.getCreatorId().equals(userId)) {
-            throw new RuntimeException("Non autorisé");
+                
+        boolean isCreator = event.getCreatorId().equals(currentUser.getId());
+        boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+
+        if (!isCreator && !isAdmin) {
+            throw new RuntimeException("Non autorisé : Seul le créateur ou un Admin peut modifier.");
         }
+        
         event.setTitle(updated.getTitle());
         event.setDescription(updated.getDescription());
         event.setDate(updated.getDate());
@@ -64,12 +80,17 @@ public class EventService {
         return eventRepository.save(event);
     }
 
-    public void delete(Long id, Long userId) {
+    public void delete(Long id, User currentUser) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Évènement introuvable"));
-        if (!event.getCreatorId().equals(userId)) {
-            throw new RuntimeException("Non autorisé");
+                
+        boolean isCreator = event.getCreatorId().equals(currentUser.getId());
+        boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+
+        if (!isCreator && !isAdmin) {
+            throw new RuntimeException("Non autorisé : Seul le créateur ou un Admin peut supprimer.");
         }
+        
         eventRepository.delete(event);
     }
 
@@ -79,14 +100,18 @@ public class EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Évènement introuvable"));
 
+        if (isPastEvent(event)) {
+            throw new RuntimeException("Impossible de s'inscrire à un évènement déjà passé.");
+        }
+
         if (registrationRepository.existsByUserIdAndEventId(userId, eventId)) {
             throw new RuntimeException("Déjà inscrit");
         }
 
-        if (event.getMaxParticipants() != null) {
+        if (event.getMaxParticipants() != null && event.getMaxParticipants() > 0) {
             long count = registrationRepository.countByEventId(eventId);
             if (count >= event.getMaxParticipants()) {
-                throw new RuntimeException("Plus de places disponibles");
+                throw new RuntimeException("Cet évènement est complet.");
             }
         }
 

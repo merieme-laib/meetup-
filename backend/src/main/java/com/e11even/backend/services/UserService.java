@@ -1,6 +1,7 @@
 package com.e11even.backend.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.e11even.backend.models.User;
@@ -11,6 +12,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder; 
 
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
@@ -28,9 +32,10 @@ public class UserService {
     }
 
     public User updateEmail(Long id, String newEmail, String password) {
-    User user = userRepository.findById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-        if (!user.getPassword().equals(password)) {
+        
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Mot de passe incorrect");
         }
         if (userRepository.findByEmail(newEmail).isPresent()) {
@@ -43,10 +48,12 @@ public class UserService {
     public User updatePassword(Long id, String currentPassword, String newPassword) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-        if (!user.getPassword().equals(currentPassword)) {
+        
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new RuntimeException("Mot de passe actuel incorrect");
         }
-        user.setPassword(newPassword);
+        
+        user.setPassword(passwordEncoder.encode(newPassword));
         return userRepository.save(user);
     }
 
