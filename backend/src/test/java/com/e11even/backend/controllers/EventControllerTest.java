@@ -8,6 +8,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -103,6 +106,43 @@ class EventControllerTest {
         assertEquals(3, response.get(0).getLikesCount());
         assertEquals(null, response.get(0).getIsRegistered());
         assertEquals(null, response.get(0).getIsLiked());
+    }
+
+    @Test
+    void getAllEvents_shouldFilterCancelledEvents() {
+        Event active = buildEvent(20L, 5L, LocalDateTime.now().plusDays(1));
+        Event cancelled = buildEvent(21L, 5L, LocalDateTime.now().plusDays(2));
+        cancelled.setCancelled(true);
+
+        when(eventRepository.findAll()).thenReturn(List.of(active, cancelled));
+        when(registrationRepository.countByEventId(20L)).thenReturn(0L);
+        when(likeRepository.countByEventId(20L)).thenReturn(0L);
+
+        List<Event> response = eventController.getAllEvents(null);
+
+        assertEquals(1, response.size());
+        assertSame(active, response.get(0));
+    }
+
+    @Test
+    void getAllEvents_shouldSetUserFlags_whenAuthValid() {
+        mockCurrentUser(5L);
+        Event found = buildEvent(22L, 5L, LocalDateTime.now().plusDays(1));
+
+        when(eventRepository.findAll()).thenReturn(List.of(found));
+        when(registrationRepository.countByEventId(22L)).thenReturn(8L);
+        when(likeRepository.countByEventId(22L)).thenReturn(13L);
+        when(registrationRepository.existsByUserIdAndEventId(5L, 22L)).thenReturn(true);
+        when(likeRepository.existsByUserIdAndEventId(5L, 22L)).thenReturn(false);
+
+        List<Event> response = eventController.getAllEvents("Bearer token");
+
+        assertEquals(1, response.size());
+        Event body = response.get(0);
+        assertEquals(8, body.getParticipantsCount());
+        assertEquals(13, body.getLikesCount());
+        assertTrue(body.getIsRegistered());
+        assertFalse(body.getIsLiked());
     }
 
     @Test
@@ -263,6 +303,22 @@ class EventControllerTest {
     }
 
     @Test
+    void register_shouldReturnCreated_whenDateIsNull() {
+        mockCurrentUser(5L);
+        Event found = buildEvent(30L, 7L, null);
+        when(eventRepository.findById(30L)).thenReturn(Optional.of(found));
+        when(registrationRepository.existsByUserIdAndEventId(5L, 30L)).thenReturn(false);
+        when(registrationRepository.countByEventId(30L)).thenReturn(2L);
+
+        ResponseEntity<?> response = eventController.register(30L, "Bearer token");
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
+        assertEquals(true, body.get("registered"));
+        assertEquals(2L, body.get("participantsCount"));
+    }
+
+    @Test
     void getEventById_shouldReturnOkAndEnrichEvent_whenFound() {
         mockCurrentUser(5L);
         Event found = buildEvent(10L, 5L, LocalDateTime.now().plusDays(1));
@@ -322,6 +378,18 @@ class EventControllerTest {
     }
 
     @Test
+    void like_shouldNotCreateDuplicateLike_whenAlreadyExists() {
+        mockCurrentUser(5L);
+        when(likeRepository.existsByUserIdAndEventId(5L, 6L)).thenReturn(true);
+        when(likeRepository.countByEventId(6L)).thenReturn(1L);
+
+        ResponseEntity<?> response = eventController.like(6L, "Bearer token");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(likeRepository, never()).save(any(Like.class));
+    }
+
+    @Test
     void unlike_shouldDeleteLikeWhenPresent() {
         mockCurrentUser(5L);
         when(likeRepository.findByUserIdAndEventId(5L, 7L))
@@ -334,5 +402,47 @@ class EventControllerTest {
         Map<?, ?> body = assertInstanceOf(Map.class, response.getBody());
         assertFalse((Boolean) body.get("liked"));
         assertEquals(0L, body.get("likesCount"));
+    }
+
+    @Test
+    void getEventRegistrations_shouldReturnUsers_whenRequesterIsCreator() {
+        mockCurrentUser(5L);
+        Event event = buildEvent(40L, 5L, LocalDateTime.now().plusDays(1));
+        User attendee = new User();
+        attendee.setId(12L);
+        attendee.setEmail("attendee@example.com");
+
+        when(eventRepository.findById(40L)).thenReturn(Optional.of(event));
+        when(registrationRepository.findByEventId(40L)).thenReturn(List.of(new Registration(12L, 40L)));
+        when(userRepository.findAllById(List.of(12L))).thenReturn(List.of(attendee));
+
+        ResponseEntity<?> response = eventController.getEventRegistrations(40L, "Bearer token");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<?> users = assertInstanceOf(List.class, response.getBody());
+        assertEquals(1, users.size());
+        assertSame(attendee, users.get(0));
+    }
+
+    @Test
+    void getEventRegistrations_shouldReturnForbidden_whenRequesterIsNotCreator() {
+        mockCurrentUser(5L);
+        Event event = buildEvent(41L, 9L, LocalDateTime.now().plusDays(1));
+        when(eventRepository.findById(41L)).thenReturn(Optional.of(event));
+
+        ResponseEntity<?> response = eventController.getEventRegistrations(41L, "Bearer token");
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+    }
+
+    @Test
+    void getEventRegistrations_shouldReturnNotFound_whenEventMissing() {
+        mockCurrentUser(5L);
+        when(eventRepository.findById(42L)).thenReturn(Optional.empty());
+
+        ResponseEntity<?> response = eventController.getEventRegistrations(42L, "Bearer token");
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNull(response.getBody());
     }
 }
