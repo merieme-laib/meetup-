@@ -75,7 +75,7 @@ public class EventController {
         return normalizedEventDate.isBefore(now);
     }
 
-    // 1. LISTE DES ÉVÈNEMENTS 
+    //  LISTE DES ÉVÈNEMENTS 
     @GetMapping
     public List<Event> getAllEvents(
             @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -93,7 +93,7 @@ public class EventController {
         return events;
     }
 
-    // 2. DÉTAIL D'UN ÉVÈNEMENT
+    // DÉTAIL D'UN ÉVÈNEMENT
     @GetMapping("/{id}")
     public ResponseEntity<?> getEventById(
             @PathVariable Long id,
@@ -114,7 +114,7 @@ public class EventController {
         }
     }
 
-    // 3. CRÉATION D'UN ÉVÈNEMENT 
+    // CRÉATION D'UN ÉVÈNEMENT 
     @PostMapping
     public ResponseEntity<Event> createEvent(
             @RequestBody EventRequest request,
@@ -140,7 +140,7 @@ public class EventController {
         return ResponseEntity.status(201).body(eventRepository.save(event));
     }
 
-    // 4. MODIFICATION 
+    // MODIFICATION 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEvent(
             @PathVariable Long id,
@@ -176,7 +176,7 @@ public class EventController {
         }
     }
 
-    // 5. SUPPRESSION 
+    // SUPPRESSION 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEvent(
             @PathVariable Long id,
@@ -200,7 +200,7 @@ public class EventController {
         }
     }
 
-    // 6. INSCRIPTION
+    // INSCRIPTION
     @PostMapping("/{id}/register")
     public ResponseEntity<?> register(
             @PathVariable Long id,
@@ -229,7 +229,7 @@ public class EventController {
         ));
     }
 
-    // 7. DÉSINCRIPTION
+    // DÉSINCRIPTION
     @DeleteMapping("/{id}/register")
     public ResponseEntity<?> unregister(
             @PathVariable Long id,
@@ -245,7 +245,7 @@ public class EventController {
         ));
     }
 
-    // 8. LIKE
+    // LIKE
     @PostMapping("/{id}/like")
     public ResponseEntity<?> like(
             @PathVariable Long id,
@@ -262,7 +262,7 @@ public class EventController {
         ));
     }
 
-    // 9. UNLIKE
+    //UNLIKE
     @DeleteMapping("/{id}/like")
     public ResponseEntity<?> unlike(
             @PathVariable Long id,
@@ -278,24 +278,27 @@ public class EventController {
         ));
     }
 
-
     @GetMapping("/{id}/registrations")
     public ResponseEntity<?> getEventRegistrations(
             @PathVariable Long id,
-            @RequestHeader("Authorization") String authHeader) {
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authHeader) {
         Long userId = getCurrentUserId(authHeader);
-        // Vérifier que c'est le créateur
+        
         return eventRepository.findById(id).map(event -> {
             if (!event.getCreatorId().equals(userId)) {
-                return ResponseEntity.status(403).build();
+                // On remet un vrai message JSON
+                return ResponseEntity.status(403).body(Map.of("error", "Action interdite : vous n'êtes pas le créateur."));
             }
             List<Registration> registrations = registrationRepository.findByEventId(id);
             List<Long> userIds = registrations.stream()
                     .map(Registration::getUserId)
                     .collect(java.util.stream.Collectors.toList());
-            List<User> users = userRepository.findAllById(userIds);
+                    
+            List<com.e11even.backend.dto.UserProfileResponse> users = userRepository.findAllById(userIds).stream()
+                    .map(com.e11even.backend.dto.UserProfileResponse::new)
+                    .collect(java.util.stream.Collectors.toList());
+                    
             return ResponseEntity.ok(users);
-        }).orElse(ResponseEntity.notFound().build());
+        }).orElse(ResponseEntity.status(404).body(Map.of("error", "L'évènement est introuvable.")));
     }
-    
 }

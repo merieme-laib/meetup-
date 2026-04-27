@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.e11even.backend.dto.LoginRequest; 
 import com.e11even.backend.dto.RegisterRequest;
 import com.e11even.backend.dto.UserProfileResponse;
 import com.e11even.backend.models.User;
@@ -51,8 +52,9 @@ public class AuthController {
         }
     }
 
+    
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User loginRequest) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         if (loginRequest == null
                 || loginRequest.getEmail() == null || loginRequest.getEmail().isBlank()
                 || loginRequest.getPassword() == null || loginRequest.getPassword().isBlank()) {
@@ -61,7 +63,7 @@ public class AuthController {
         }
 
         try {
-            // 1. Le service vérifie l'email et le mot de passe
+            // vérifie l'email et le mot de passe
             User user = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
 
             if (user == null) {
