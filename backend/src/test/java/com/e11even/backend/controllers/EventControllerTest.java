@@ -192,16 +192,12 @@ class EventControllerTest {
     @Test
     void deleteEvent_shouldReturnForbidden_whenOwnerMismatch() {
         mockCurrentUser(5L);
-        User otherUser = new User();
-        otherUser.setId(5L);
-        // On simule l'erreur de sécurité venant du service
-        when(eventController.deleteEvent(eq(13L), any())).thenThrow(new RuntimeException("Non autorisé"));
+        org.mockito.Mockito.doThrow(new RuntimeException("Non autorisé"))
+                .when(eventService).delete(eq(13L), any(User.class));
 
-        try {
-            eventController.deleteEvent(13L, "Bearer token");
-        } catch (RuntimeException e) {
-            assertEquals(HttpStatus.FORBIDDEN, eventController.deleteEvent(13L, "Bearer token").getStatusCode());
-        }
+        ResponseEntity<?> response = eventController.deleteEvent(13L, "Bearer token");
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 
     @Test
