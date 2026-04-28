@@ -7,12 +7,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,6 +22,9 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService userService;
@@ -98,13 +103,12 @@ class UserServiceTest {
         User existing = new User();
         existing.setId(1L);
         existing.setEmail("old@example.com");
-        existing.setPassword("secret");
-
-        User other = new User();
-        other.setEmail("other@example.com");
+        existing.setPassword("hashed_secret");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
+        //On simule que le mot de passe saisi "secret" correspond au hash
+        when(passwordEncoder.matches("secret", "hashed_secret")).thenReturn(true);
         when(userRepository.save(existing)).thenReturn(existing);
 
         User result = userService.updateEmail(1L, "new@example.com", "secret");
@@ -116,9 +120,10 @@ class UserServiceTest {
     void updateEmail_shouldThrow_whenPasswordIsWrong() {
         User existing = new User();
         existing.setId(1L);
-        existing.setEmail("old@example.com");
-        existing.setPassword("secret");
+        existing.setPassword("hashed_secret");
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+        // ❌ On simule un échec de correspondance
+        when(passwordEncoder.matches("wrong", "hashed_secret")).thenReturn(false);
 
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.updateEmail(1L, "new@example.com", "wrong"));
@@ -130,9 +135,9 @@ class UserServiceTest {
     void updateEmail_shouldThrow_whenEmailAlreadyUsed() {
         User existing = new User();
         existing.setId(1L);
-        existing.setEmail("old@example.com");
-        existing.setPassword("secret");
+        existing.setPassword("hashed_secret");
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(passwordEncoder.matches("secret", "hashed_secret")).thenReturn(true);
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.of(new User()));
 
         RuntimeException exception = assertThrows(RuntimeException.class,
@@ -155,21 +160,25 @@ class UserServiceTest {
     void updatePassword_shouldChangePassword() {
         User existing = new User();
         existing.setId(1L);
-        existing.setPassword("old");
+        existing.setPassword("hashed_old");
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(passwordEncoder.matches("old", "hashed_old")).thenReturn(true);
+        // ✅ On simule l'encodage du nouveau mot de passe
+        when(passwordEncoder.encode("new")).thenReturn("hashed_new");
         when(userRepository.save(existing)).thenReturn(existing);
 
         User result = userService.updatePassword(1L, "old", "new");
 
-        assertEquals("new", result.getPassword());
+        assertEquals("hashed_new", result.getPassword());
     }
 
     @Test
     void updatePassword_shouldThrow_whenCurrentPasswordIsWrong() {
         User existing = new User();
         existing.setId(1L);
-        existing.setPassword("old");
+        existing.setPassword("hashed_old");
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(passwordEncoder.matches("bad", "hashed_old")).thenReturn(false);
 
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.updatePassword(1L, "bad", "new"));

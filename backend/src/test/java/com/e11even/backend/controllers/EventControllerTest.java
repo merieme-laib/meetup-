@@ -39,6 +39,9 @@ import com.e11even.backend.security.JwtUtils;
 class EventControllerTest {
 
     @Mock
+    private EventService eventService;
+
+    @Mock
     private EventRepository eventRepository;
 
     @Mock

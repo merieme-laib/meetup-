@@ -1,6 +1,8 @@
 package com.e11even.backend.security;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -10,12 +12,19 @@ class JwtUtilsTest {
 
     private final JwtUtils jwtUtils = new JwtUtils();
 
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(jwtUtils, "jwtSecret", "MaSuperCleSecreteDePlusDe32CaracteresPourLeHmac");
+        ReflectionTestUtils.setField(jwtUtils, "jwtExpirationMs", 3600000); // 1 heure
+    }
+
     @Test
     void generateAndReadToken_shouldReturnOriginalEmail() {
-        String token = jwtUtils.generateJwtToken("alice@example.com");
+        String email = "alice@example.com";
+        String token = jwtUtils.generateJwtToken(email);
 
         assertTrue(jwtUtils.validateJwtToken(token));
-        assertEquals("alice@example.com", jwtUtils.getEmailFromJwtToken(token));
+        assertEquals(email, jwtUtils.getEmailFromJwtToken(token));
     }
 
     @Test
