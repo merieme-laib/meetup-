@@ -24,7 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import com.e11even.backend.dto.EventRequest;
-import com.e11even.backend.dto.UserProfileResponse; // 👈 Import ajouté
+import com.e11even.backend.dto.UserProfileResponse;
 import com.e11even.backend.models.Event;
 import com.e11even.backend.models.Like;
 import com.e11even.backend.models.Registration;
@@ -34,11 +34,13 @@ import com.e11even.backend.repositories.LikeRepository;
 import com.e11even.backend.repositories.RegistrationRepository;
 import com.e11even.backend.repositories.UserRepository;
 import com.e11even.backend.security.JwtUtils;
+import com.e11even.backend.services.EventService;
 
 @ExtendWith(MockitoExtension.class)
 class EventControllerTest {
 
     @Mock
+    
     private EventService eventService;
 
     @Mock
