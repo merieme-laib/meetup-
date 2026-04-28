@@ -55,7 +55,7 @@ sonarqube-check:
   script:
     - cd backend
     - mvn dependency:go-offline
-    - mvn clean verify sonar:sonar -DskipTests
+    - mvn clean verify sonar:sonar
   artifacts:
     paths:
       - backend/target/*.jar
